@@ -287,18 +287,29 @@ async function showDetails(eventId) {
 }
 
 // ============================================
-// 9. Show Venue Details
+// 9. Show Venue Details (使用 DOM 展开/隐藏)
 // ============================================
 async function showVenueDetails(venueName) {
     try {
+        const venueCard = document.getElementById('venueCard');
+        
+        // 如果已经显示，则隐藏
+        if (venueCard.style.display === 'block') {
+            venueCard.style.display = 'none';
+            // 更新按钮文本
+            const btn = document.querySelector('.event-details-card button');
+            if (btn) {
+                btn.textContent = 'Show Venue Details ▼';
+            }
+            return;
+        }
+        
         console.log('Fetching venue details for:', venueName);
         
         const response = await fetch(`/api/venue?name=${encodeURIComponent(venueName)}`);
         const venue = await response.json();
         
         console.log('Venue details:', venue);
-        
-        const venueCard = document.getElementById('venueCard');
         
         const fullAddress = `${venue.name}, ${venue.address}, ${venue.city}, ${venue.postalCode}`;
         const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
@@ -315,7 +326,15 @@ async function showVenueDetails(venueName) {
             </div>
         `;
         
+        // 使用 DOM 显示
         venueCard.style.display = 'block';
+        
+        // 更新按钮文本
+        const btn = document.querySelector('.event-details-card button');
+        if (btn) {
+            btn.textContent = 'Hide Venue Details ▲';
+        }
+        
         venueCard.scrollIntoView({ behavior: 'smooth' });
         
     } catch (error) {
