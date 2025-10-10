@@ -1,104 +1,185 @@
 from flask import Flask, request, jsonify, send_from_directory
 import requests
-import geolib
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# API密钥
-TICKETMASTER_API_KEY = '	jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1'
+# API Key (Fixed: removed tab character)
+TICKETMASTER_API_KEY = 'jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1'
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return send_from_directory('static', 'events.html')
 
 @app.route('/api/search')
 def search_events():
-    # 获取查询参数
-    keyword = request.args.get('keyword')
-    distance = request.args.get('distance', 10)
-    category = request.args.get('category', 'Default')
-    geohash = request.args.get('geohash')
+    try:
+        # Get query parameters
+        keyword = request.args.get('keyword')
+        distance = request.args.get('distance', 10)
+        category = request.args.get('category', 'Default')
+        geohash = request.args.get('geohash')
+        
+        # Build Ticketmaster API URL
+        url = 'https://app.ticketmaster.com/discovery/v2/events.json'
+        params = {
+            'apikey': TICKETMASTER_API_KEY,
+            'keyword': keyword,
+            'radius': distance,
+            'unit': 'miles',
+            'geoPoint': geohash
+        }
+        
+        if category != 'Default':
+            params['segmentId'] = category
+        
+        # Call Ticketmaster API
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        # Parse results
+        events = []
+        if '_embedded' in data and 'events' in data['_embedded']:
+            for event in data['_embedded']['events']:
+                # Format date and time
+                date_str = event['dates']['start'].get('localDate', 'N/A')
+                time_str = event['dates']['start'].get('localTime', '')
+                formatted_date = f"{date_str} {time_str}".strip()
+                
+                events.append({
+                    'id': event['id'],
+                    'name': event['name'],
+                    'date': formatted_date,
+                    'icon': event['images'][0]['url'] if event.get('images') else '',
+                    'genre': event['classifications'][0]['segment']['name'] if event.get('classifications') else 'N/A',
+                    'venue': event['_embedded']['venues'][0]['name'] if '_embedded' in event and 'venues' in event['_embedded'] else 'N/A'
+                })
+        
+        return jsonify(events)
     
-    # 构建Ticketmaster API URL
-    url = 'https://app.ticketmaster.com/discovery/v2/events.json'
-    params = {
-        'apikey': TICKETMASTER_API_KEY,
-        'keyword': keyword,
-        'radius': distance,
-        'unit': 'miles',
-        'geoPoint': geohash
-    }
-    
-    if category != 'Default':
-        params['segmentId'] = category
-    
-    # 调用Ticketmaster API
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    # 解析结果
-    events = []
-    if '_embedded' in data and 'events' in data['_embedded']:
-        for event in data['_embedded']['events']:
-            events.append({
-                'id': event['id'],
-                'name': event['name'],
-                'date': event['dates']['start'].get('localDate', 'N/A') + ' ' + event['dates']['start'].get('localTime', ''),
-                'icon': event['images'][0]['url'] if event.get('images') else '',
-                'genre': event['classifications'][0]['segment']['name'] if event.get('classifications') else 'N/A',
-                'venue': event['_embedded']['venues'][0]['name'] if '_embedded' in event else 'N/A'
-            })
-    
-    return jsonify(events)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event/<event_id>')
 def get_event_details(event_id):
-    # 获取活动详情
-    url = f'https://app.ticketmaster.com/discovery/v2/events/{event_id}.json'
-    params = {'apikey': TICKETMASTER_API_KEY}
+    try:
+        # Get event details
+        url = f'https://app.ticketmaster.com/discovery/v2/events/{event_id}.json'
+        params = {'apikey': TICKETMASTER_API_KEY}
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        # Parse date
+        date_str = data['dates']['start'].get('localDate', 'N/A')
+        time_str = data['dates']['start'].get('localTime', '')
+        formatted_date = f"{date_str} {time_str}".strip()
+        
+        # Parse artists/teams
+        artists = []
+        if '_embedded' in data and 'attractions' in data['_embedded']:
+            artists = [a['name'] for a in data['_embedded']['attractions']]
+        
+        # Parse venue
+        venue = 'N/A'
+        if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
+            venue = data['_embedded']['venues'][0]['name']
+        
+        # Parse genres
+        genres = []
+        if 'classifications' in data:
+            for classification in data['classifications']:
+                if 'segment' in classification and 'name' in classification['segment']:
+                    genres.append(classification['segment']['name'])
+                if 'genre' in classification and 'name' in classification['genre']:
+                    genres.append(classification['genre']['name'])
+                if 'subGenre' in classification and 'name' in classification['subGenre']:
+                    genres.append(classification['subGenre']['name'])
+        genre_str = ' | '.join(filter(None, genres)) if genres else 'N/A'
+        
+        # Parse price range
+        price_range = 'N/A'
+        if 'priceRanges' in data and len(data['priceRanges']) > 0:
+            min_price = data['priceRanges'][0].get('min', 'N/A')
+            max_price = data['priceRanges'][0].get('max', 'N/A')
+            price_range = f"{min_price} - {max_price} USD"
+        
+        # Parse ticket status
+        ticket_status = data['dates']['status'].get('code', 'N/A')
+        
+        # Parse buy ticket URL
+        buy_ticket_url = data.get('url', '#')
+        
+        # Parse seatmap
+        seatmap = None
+        if 'seatmap' in data and 'staticUrl' in data['seatmap']:
+            seatmap = data['seatmap']['staticUrl']
+        
+        details = {
+            'name': data.get('name', 'N/A'),
+            'date': formatted_date,
+            'artists': artists,
+            'venue': venue,
+            'genres': genre_str,
+            'priceRange': price_range,
+            'ticketStatus': ticket_status,
+            'buyTicketUrl': buy_ticket_url,
+            'seatmap': seatmap
+        }
+        
+        return jsonify(details)
     
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    # 解析详情数据
-    details = {
-        'name': data.get('name'),
-        'date': data['dates']['start'].get('localDate', 'N/A'),
-        'artists': [a['name'] for a in data['_embedded'].get('attractions', [])],
-        'venue': data['_embedded']['venues'][0]['name'],
-        'genres': ' | '.join([c['segment']['name'] for c in data.get('classifications', [])]),
-        'priceRange': f"{data['priceRanges'][0]['min']} - {data['priceRanges'][0]['max']} USD" if 'priceRanges' in data else 'N/A',
-        'ticketStatus': data['dates']['status']['code'],
-        'buyTicketUrl': data.get('url'),
-        'seatmap': data.get('seatmap', {}).get('staticUrl')
-    }
-    
-    return jsonify(details)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/venue')
 def get_venue_details():
-    venue_name = request.args.get('name')
-    
-    url = 'https://app.ticketmaster.com/discovery/v2/venues.json'
-    params = {
-        'apikey': TICKETMASTER_API_KEY,
-        'keyword': venue_name
-    }
-    
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    if '_embedded' in data:
-        venue = data['_embedded']['venues'][0]
+    try:
+        venue_name = request.args.get('name')
+        
+        url = 'https://app.ticketmaster.com/discovery/v2/venues.json'
+        params = {
+            'apikey': TICKETMASTER_API_KEY,
+            'keyword': venue_name
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
+            venue = data['_embedded']['venues'][0]
+            
+            # Parse address
+            address = venue.get('address', {}).get('line1', 'N/A')
+            
+            # Parse city and state
+            city_name = venue.get('city', {}).get('name', 'N/A')
+            state_code = venue.get('state', {}).get('stateCode', '')
+            city = f"{city_name}, {state_code}" if state_code else city_name
+            
+            # Parse postal code
+            postal_code = venue.get('postalCode', 'N/A')
+            
+            # Parse upcoming events URL
+            upcoming_events = venue.get('url', '#')
+            
+            return jsonify({
+                'name': venue.get('name', 'N/A'),
+                'address': address,
+                'city': city,
+                'postalCode': postal_code,
+                'upcomingEvents': upcoming_events
+            })
+        
         return jsonify({
-            'name': venue['name'],
-            'address': venue['address'].get('line1', 'N/A'),
-            'city': venue['city']['name'] + ', ' + venue['state']['stateCode'],
-            'postalCode': venue.get('postalCode', 'N/A'),
-            'upcomingEvents': venue.get('url')
+            'name': 'N/A',
+            'address': 'N/A',
+            'city': 'N/A',
+            'postalCode': 'N/A',
+            'upcomingEvents': '#'
         })
     
-    return jsonify({})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
