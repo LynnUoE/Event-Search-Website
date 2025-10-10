@@ -1,8 +1,62 @@
-// Global variables for sorting
-let currentEvents = [];
-let sortOrder = { event: 0, genre: 0, venue: 0 }; // 0: none, 1: asc, -1: desc
+// ============================================
+// Geohash Implementation (Self-contained)
+// ============================================
+const Geohash = {
+    base32: '0123456789bcdefghjkmnpqrstuvwxyz',
+    
+    encode: function(latitude, longitude, precision = 7) {
+        let idx = 0;
+        let bit = 0;
+        let evenBit = true;
+        let geohash = '';
+        
+        let latMin = -90, latMax = 90;
+        let lonMin = -180, lonMax = 180;
+        
+        while (geohash.length < precision) {
+            if (evenBit) {
+                // longitude
+                const lonMid = (lonMin + lonMax) / 2;
+                if (longitude > lonMid) {
+                    idx = (idx << 1) + 1;
+                    lonMin = lonMid;
+                } else {
+                    idx = idx << 1;
+                    lonMax = lonMid;
+                }
+            } else {
+                // latitude
+                const latMid = (latMin + latMax) / 2;
+                if (latitude > latMid) {
+                    idx = (idx << 1) + 1;
+                    latMin = latMid;
+                } else {
+                    idx = idx << 1;
+                    latMax = latMid;
+                }
+            }
+            evenBit = !evenBit;
+            
+            if (++bit === 5) {
+                geohash += this.base32[idx];
+                bit = 0;
+                idx = 0;
+            }
+        }
+        
+        return geohash;
+    }
+};
 
-// 1. Auto-detect location toggle
+// ============================================
+// Global Variables
+// ============================================
+let currentEvents = [];
+let sortOrder = { event: 0, genre: 0, venue: 0 };
+
+// ============================================
+// 1. Auto-detect Location Toggle
+// ============================================
 document.getElementById('autoDetect').addEventListener('change', function() {
     const locationInput = document.getElementById('location');
     if (this.checked) {
@@ -14,19 +68,24 @@ document.getElementById('autoDetect').addEventListener('change', function() {
     }
 });
 
-// 2. Get user location using IPInfo API
+// ============================================
+// 2. Get User Location (IPInfo API)
+// ============================================
 async function getUserLocation() {
     try {
         const response = await fetch('https://ipinfo.io/?token=bf8f570fb8f455');
         const data = await response.json();
-        return data.loc; // Returns "lat,lng"
+        console.log('User location from IPInfo:', data.loc);
+        return data.loc;
     } catch (error) {
         console.error('Error getting user location:', error);
         throw error;
     }
 }
 
-// 3. Geocoding using Google Maps API
+// ============================================
+// 3. Geocoding (Google Maps API)
+// ============================================
 async function geocodeAddress(address) {
     try {
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyBLI3A7HJUJ4jTPEPuESWCppDVdyYYMSGY`;
@@ -34,7 +93,8 @@ async function geocodeAddress(address) {
         const data = await response.json();
         
         if (data.results && data.results.length > 0) {
-            return data.results[0].geometry.location; // {lat, lng}
+            console.log('Geocoded location:', data.results[0].geometry.location);
+            return data.results[0].geometry.location;
         } else {
             throw new Error('No results found for address');
         }
@@ -44,28 +104,39 @@ async function geocodeAddress(address) {
     }
 }
 
+// ============================================
 // 4. Convert to Geohash
+// ============================================
 function encodeGeohash(lat, lng) {
-    return Geohash.encode(lat, lng, 7);
+    const geohash = Geohash.encode(lat, lng, 7);
+    console.log(`Geohash for (${lat}, ${lng}):`, geohash);
+    return geohash;
 }
 
-// 5. Search form submission
+// ============================================
+// 5. Search Form Submission
+// ============================================
 document.getElementById('searchForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    // Get form data
+    console.log('=== Search Started ===');
+    
     const keyword = document.getElementById('keyword').value;
     const distance = document.getElementById('distance').value || 10;
     const category = document.getElementById('category').value;
     
+    console.log('Search params:', { keyword, distance, category });
+    
     try {
-        // Get location
         let lat, lng;
+        
         if (document.getElementById('autoDetect').checked) {
+            console.log('Using auto-detect location...');
             const loc = await getUserLocation();
             [lat, lng] = loc.split(',');
         } else {
             const location = document.getElementById('location').value;
+            console.log('Geocoding location:', location);
             const coords = await geocodeAddress(location);
             lat = coords.lat;
             lng = coords.lng;
@@ -73,23 +144,26 @@ document.getElementById('searchForm').addEventListener('submit', async function(
         
         const geohash = encodeGeohash(parseFloat(lat), parseFloat(lng));
         
-        // Call backend API
         const url = `/api/search?keyword=${encodeURIComponent(keyword)}&distance=${distance}&category=${category}&geohash=${geohash}`;
+        console.log('API URL:', url);
+        
         const response = await fetch(url);
         const events = await response.json();
         
-        // Store events for sorting
-        currentEvents = events;
+        console.log('Found events:', events.length);
         
-        // Display results
+        currentEvents = events;
         displayResults(events);
+        
     } catch (error) {
         console.error('Search error:', error);
-        alert('Error performing search. Please try again.');
+        alert('Error performing search: ' + error.message);
     }
 });
 
-// 6. Display results table
+// ============================================
+// 6. Display Results Table
+// ============================================
 function displayResults(events) {
     const resultsContainer = document.getElementById('resultsContainer');
     const tbody = document.querySelector('#resultsTable tbody');
@@ -112,7 +186,7 @@ function displayResults(events) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${event.date}</td>
-            <td><img src="${event.icon}" width="50" alt="Event icon"></td>
+            <td><img src="${event.icon}" width="50" height="50" alt="Event icon"></td>
             <td><a href="#" onclick="showDetails('${event.id}'); return false;">${event.name}</a></td>
             <td>${event.genre}</td>
             <td>${event.venue}</td>
@@ -121,7 +195,9 @@ function displayResults(events) {
     });
 }
 
-// 7. Table sorting
+// ============================================
+// 7. Table Sorting
+// ============================================
 document.querySelectorAll('.sortable').forEach(header => {
     header.addEventListener('click', function() {
         const column = this.dataset.column;
@@ -130,15 +206,12 @@ document.querySelectorAll('.sortable').forEach(header => {
 });
 
 function sortTable(column) {
-    // Update sort order
     sortOrder[column] = sortOrder[column] === 1 ? -1 : 1;
     
-    // Reset other columns
     for (let key in sortOrder) {
         if (key !== column) sortOrder[key] = 0;
     }
     
-    // Sort events
     currentEvents.sort((a, b) => {
         let valA = a[column].toLowerCase();
         let valB = b[column].toLowerCase();
@@ -151,20 +224,24 @@ function sortTable(column) {
     displayResults(currentEvents);
 }
 
-// 8. Show event details
+// ============================================
+// 8. Show Event Details
+// ============================================
 async function showDetails(eventId) {
     try {
+        console.log('Fetching details for event:', eventId);
+        
         const response = await fetch(`/api/event/${eventId}`);
         const details = await response.json();
         
+        console.log('Event details:', details);
+        
         const detailsCard = document.getElementById('detailsCard');
         
-        // Build artists/teams string
         const artistsHtml = details.artists && details.artists.length > 0 
             ? details.artists.map(artist => `<a href="#" target="_blank">${artist}</a>`).join(' | ')
             : 'N/A';
         
-        // Get ticket status color
         const statusColors = {
             'onsale': 'green',
             'offsale': 'red',
@@ -196,22 +273,30 @@ async function showDetails(eventId) {
                     </div>
                     ${details.seatmap ? `<div class="seatmap"><img src="${details.seatmap}" alt="Seat Map"></div>` : ''}
                 </div>
-                <button onclick="showVenueDetails('${details.venue}')">Show Venue Details ▼</button>
+                <button onclick="showVenueDetails('${details.venue}')" style="margin-top: 20px;">Show Venue Details ▼</button>
             </div>
         `;
         
         detailsCard.style.display = 'block';
         detailsCard.scrollIntoView({ behavior: 'smooth' });
+        
     } catch (error) {
         console.error('Error fetching event details:', error);
+        alert('Error loading event details');
     }
 }
 
-// 9. Show venue details
+// ============================================
+// 9. Show Venue Details
+// ============================================
 async function showVenueDetails(venueName) {
     try {
+        console.log('Fetching venue details for:', venueName);
+        
         const response = await fetch(`/api/venue?name=${encodeURIComponent(venueName)}`);
         const venue = await response.json();
+        
+        console.log('Venue details:', venue);
         
         const venueCard = document.getElementById('venueCard');
         
@@ -221,7 +306,8 @@ async function showVenueDetails(venueName) {
         venueCard.innerHTML = `
             <div class="venue-card">
                 <h3>${venue.name}</h3>
-                <p><strong>Address:</strong> ${venue.address}<br>
+                <p><strong>Address:</strong><br>
+                   ${venue.address}<br>
                    ${venue.city}<br>
                    ${venue.postalCode}</p>
                 <p><a href="${mapsUrl}" target="_blank">Open in Google Maps</a></p>
@@ -231,12 +317,16 @@ async function showVenueDetails(venueName) {
         
         venueCard.style.display = 'block';
         venueCard.scrollIntoView({ behavior: 'smooth' });
+        
     } catch (error) {
         console.error('Error fetching venue details:', error);
+        alert('Error loading venue details');
     }
 }
 
-// 10. Clear form
+// ============================================
+// 10. Clear Form
+// ============================================
 document.getElementById('clearBtn').addEventListener('click', function() {
     document.getElementById('searchForm').reset();
     document.getElementById('resultsContainer').style.display = 'none';
@@ -245,4 +335,11 @@ document.getElementById('clearBtn').addEventListener('click', function() {
     document.getElementById('location').style.display = 'block';
     currentEvents = [];
     sortOrder = { event: 0, genre: 0, venue: 0 };
+    console.log('Form cleared');
 });
+
+// ============================================
+// Test Geohash on Load
+// ============================================
+console.log('Geohash test:', Geohash.encode(34.0522, -118.2437, 7));
+console.log('Search.js loaded successfully');
