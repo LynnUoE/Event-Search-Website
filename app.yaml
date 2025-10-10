@@ -1,0 +1,14 @@
+runtime: python312
+
+entrypoint: gunicorn -b :$PORT main:app
+
+handlers:
+- url: /static
+  static_dir: static
+
+- url: /.*
+  script: auto
+
+env_variables:
+  TICKETMASTER_API_KEY: "jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1"
+  GOOGLE_API_KEY: "AIzaSyBLI3A7HJUJ4jTPEPuESWCppDVdyYYMSGY"
