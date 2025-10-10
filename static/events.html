@@ -1,22 +1,75 @@
-<form id="searchForm">
-    <label>Keyword *</label>
-    <input type="text" id="keyword" required>
-    
-    <label>Distance(miles)</label>
-    <input type="number" id="distance" placeholder="10">
-    
-    <label>Category *</label>
-    <select id="category">
-        <option value="Default">Default</option>
-        <option value="KZFzniwnSyZfZ7v7nJ">Music</option>
-        <option value="KZFzniwnSyZfZ7v7nE">Sports</option>
-        <!-- 其他类别 -->
-    </select>
-    
-    <label>Location</label>
-    <input type="checkbox" id="autoDetect"> Auto-Detect Location
-    <input type="text" id="location">
-    
-    <button type="submit">SEARCH</button>
-    <button type="button" id="clearBtn">CLEAR</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events Search</title>
+    <link rel="stylesheet" href="mystyle.css">
+</head>
+<body>
+    <div class="form-container">
+        <h1>Events Search</h1>
+        <form id="searchForm">
+            <label>Keyword <span style="color: red;">*</span></label>
+            <input type="text" id="keyword" required>
+            
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <label>Distance (miles)</label>
+                    <input type="number" id="distance" placeholder="10">
+                </div>
+                <div style="flex: 1;">
+                    <label>Category <span style="color: red;">*</span></label>
+                    <select id="category" required>
+                        <option value="Default">Default</option>
+                        <option value="KZFzniwnSyZfZ7v7nJ">Music</option>
+                        <option value="KZFzniwnSyZfZ7v7nE">Sports</option>
+                        <option value="KZFzniwnSyZfZ7v7na">Arts & Theatre</option>
+                        <option value="KZFzniwnSyZfZ7v7nn">Film</option>
+                        <option value="KZFzniwnSyZfZ7v7n1">Miscellaneous</option>
+                    </select>
+                </div>
+            </div>
+            
+            <label>Location <span style="color: red;">*</span></label>
+            <div>
+                <input type="checkbox" id="autoDetect"> Auto-Detect Location
+            </div>
+            <input type="text" id="location" required>
+            
+            <div style="margin-top: 20px;">
+                <button type="submit" class="search-btn">SEARCH</button>
+                <button type="button" id="clearBtn" class="clear-btn">CLEAR</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Table -->
+    <div id="resultsContainer" style="display: none; margin-top: 30px;">
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Icon</th>
+                    <th class="sortable" data-column="event">Event ▲▼</th>
+                    <th class="sortable" data-column="genre">Genre ▲▼</th>
+                    <th class="sortable" data-column="venue">Venue ▲▼</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="noResults" style="display: none; color: red; text-align: center; padding: 20px;">
+            No records found
+        </div>
+    </div>
+
+    <!-- Event Details Card -->
+    <div id="detailsCard" style="display: none;"></div>
+
+    <!-- Venue Details Card -->
+    <div id="venueCard" style="display: none;"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/geohash/1.0.0/geohash.min.js"></script>
+    <script src="search.js"></script>
+</body>
+</html>
