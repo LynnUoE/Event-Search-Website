@@ -1,19 +1,34 @@
 from flask import Flask, request, jsonify, send_from_directory
 import requests
+import os
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# API Key (Fixed: removed tab character)
+# Ticketmaster API Key
 TICKETMASTER_API_KEY = 'jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1'
 
 @app.route('/')
 def index():
+    """Serve the main HTML page"""
     return send_from_directory('static', 'events.html')
+
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    """Serve images from the images folder"""
+    return send_from_directory('images', filename)
 
 @app.route('/api/search')
 def search_events():
+    """
+    Search for events using Ticketmaster API
+    Query parameters:
+    - keyword: Search keyword (required)
+    - distance: Search radius in miles (default: 10)
+    - category: Event category segment ID (default: Default)
+    - geohash: Geohash of location (required)
+    """
     try:
-        # Get query parameters
+        # Get query parameters from request
         keyword = request.args.get('keyword')
         distance = request.args.get('distance', 10)
         category = request.args.get('category', 'Default')
@@ -29,6 +44,7 @@ def search_events():
             'geoPoint': geohash
         }
         
+        # Add category filter if not default
         if category != 'Default':
             params['segmentId'] = category
         
@@ -36,7 +52,7 @@ def search_events():
         response = requests.get(url, params=params)
         data = response.json()
         
-        # Parse results
+        # Parse and format results
         events = []
         if '_embedded' in data and 'events' in data['_embedded']:
             for event in data['_embedded']['events']:
@@ -45,6 +61,7 @@ def search_events():
                 time_str = event['dates']['start'].get('localTime', '')
                 formatted_date = f"{date_str} {time_str}".strip()
                 
+                # Extract event information
                 events.append({
                     'id': event['id'],
                     'name': event['name'],
@@ -57,24 +74,30 @@ def search_events():
         return jsonify(events)
     
     except Exception as e:
+        print(f"Error in search_events: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event/<event_id>')
 def get_event_details(event_id):
+    """
+    Get detailed information for a specific event
+    Parameters:
+    - event_id: Ticketmaster event ID
+    """
     try:
-        # Get event details
+        # Build API request for event details
         url = f'https://app.ticketmaster.com/discovery/v2/events/{event_id}.json'
         params = {'apikey': TICKETMASTER_API_KEY}
         
         response = requests.get(url, params=params)
         data = response.json()
         
-        # Parse date
+        # Parse date and time
         date_str = data['dates']['start'].get('localDate', 'N/A')
         time_str = data['dates']['start'].get('localTime', '')
         formatted_date = f"{date_str} {time_str}".strip()
         
-        # Parse artists/teams
+        # Parse artists/teams with URLs
         artists = []
         if '_embedded' in data and 'attractions' in data['_embedded']:
             for attraction in data['_embedded']['attractions']:
@@ -83,32 +106,63 @@ def get_event_details(event_id):
                     'url': attraction.get('url', '#')
                 })
         
-        # Parse venue
-        venue = 'N/A'
+        # Parse venue information - get full venue object
+        venue_name = 'N/A'
+        venue_id = None
         if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
-            venue = data['_embedded']['venues'][0]['name']
+            venue_obj = data['_embedded']['venues'][0]
+            venue_name = venue_obj.get('name', 'N/A')
+            venue_id = venue_obj.get('id', None)
         
-        # Parse genres
+        # Parse genres/classifications
         genres = []
         if 'classifications' in data:
             for classification in data['classifications']:
+                # Add segment
                 if 'segment' in classification and 'name' in classification['segment']:
-                    genres.append(classification['segment']['name'])
+                    segment_name = classification['segment']['name']
+                    if segment_name:
+                        genres.append(segment_name)
+                
+                # Add genre
                 if 'genre' in classification and 'name' in classification['genre']:
-                    genres.append(classification['genre']['name'])
+                    genre_name = classification['genre']['name']
+                    if genre_name and genre_name != 'Undefined':
+                        genres.append(genre_name)
+                
+                # Add sub-genre
                 if 'subGenre' in classification and 'name' in classification['subGenre']:
-                    genres.append(classification['subGenre']['name'])
-        genre_str = ' | '.join(filter(None, genres)) if genres else 'N/A'
+                    subgenre_name = classification['subGenre']['name']
+                    if subgenre_name and subgenre_name != 'Undefined':
+                        genres.append(subgenre_name)
+                
+                # Add type
+                if 'type' in classification and 'name' in classification['type']:
+                    type_name = classification['type']['name']
+                    if type_name and type_name != 'Undefined':
+                        genres.append(type_name)
+                
+                # Add sub-type
+                if 'subType' in classification and 'name' in classification['subType']:
+                    subtype_name = classification['subType']['name']
+                    if subtype_name and subtype_name != 'Undefined':
+                        genres.append(subtype_name)
+        
+        # Join genres with pipe separator, remove duplicates
+        genre_str = ' | '.join(dict.fromkeys(filter(None, genres))) if genres else 'N/A'
         
         # Parse price range
         price_range = 'N/A'
         if 'priceRanges' in data and len(data['priceRanges']) > 0:
-            min_price = data['priceRanges'][0].get('min', 'N/A')
-            max_price = data['priceRanges'][0].get('max', 'N/A')
-            price_range = f"{min_price} - {max_price} USD"
+            min_price = data['priceRanges'][0].get('min', None)
+            max_price = data['priceRanges'][0].get('max', None)
+            if min_price is not None and max_price is not None:
+                price_range = f"{min_price} - {max_price} USD"
         
         # Parse ticket status
-        ticket_status = data['dates']['status'].get('code', 'N/A')
+        ticket_status = 'N/A'
+        if 'dates' in data and 'status' in data['dates']:
+            ticket_status = data['dates']['status'].get('code', 'N/A')
         
         # Parse buy ticket URL
         buy_ticket_url = data.get('url', '#')
@@ -118,11 +172,13 @@ def get_event_details(event_id):
         if 'seatmap' in data and 'staticUrl' in data['seatmap']:
             seatmap = data['seatmap']['staticUrl']
         
+        # Build response object
         details = {
             'name': data.get('name', 'N/A'),
             'date': formatted_date,
             'artists': artists,
-            'venue': venue,
+            'venue': venue_name,
+            'venueId': venue_id,
             'genres': genre_str,
             'priceRange': price_range,
             'ticketStatus': ticket_status,
@@ -133,13 +189,31 @@ def get_event_details(event_id):
         return jsonify(details)
     
     except Exception as e:
+        print(f"Error in get_event_details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/venue')
 def get_venue_details():
+    """
+    Get detailed information for a specific venue
+    Query parameters:
+    - name: Venue name to search for
+    """
     try:
         venue_name = request.args.get('name')
         
+        # Return default N/A response if venue name is invalid
+        if not venue_name or venue_name == 'N/A':
+            return jsonify({
+                'name': 'N/A',
+                'address': 'N/A',
+                'city': 'N/A',
+                'postalCode': 'N/A',
+                'upcomingEvents': '#',
+                'image': None
+            })
+        
+        # Build API request for venue search
         url = 'https://app.ticketmaster.com/discovery/v2/venues.json'
         params = {
             'apikey': TICKETMASTER_API_KEY,
@@ -149,47 +223,74 @@ def get_venue_details():
         response = requests.get(url, params=params)
         data = response.json()
         
+        # Debug logging
+        print(f"Searching for venue: {venue_name}")
+        print(f"API Response status: {response.status_code}")
+        
+        # Check if venue data exists in response
         if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
             venue = data['_embedded']['venues'][0]
             
-            # Parse address
-            address = venue.get('address', {}).get('line1', 'N/A')
+            # Extract venue name
+            name = venue.get('name', 'N/A')
             
-            # Parse city and state
-            city_name = venue.get('city', {}).get('name', 'N/A')
-            state_code = venue.get('state', {}).get('stateCode', '')
+            # Extract address with safe navigation
+            address_data = venue.get('address', {})
+            address = address_data.get('line1', 'N/A') if address_data else 'N/A'
+            
+            # Extract city and state with safe navigation
+            city_data = venue.get('city', {})
+            city_name = city_data.get('name', 'N/A') if city_data else 'N/A'
+            
+            state_data = venue.get('state', {})
+            state_code = state_data.get('stateCode', '') if state_data else ''
+            
+            # Combine city and state
             city = f"{city_name}, {state_code}" if state_code else city_name
             
-            # Parse postal code
+            # Extract postal code
             postal_code = venue.get('postalCode', 'N/A')
             
-            # Parse upcoming events URL
+            # Extract upcoming events URL
             upcoming_events = venue.get('url', '#')
             
-            # Parse venue image/logo
+            # Extract venue image
             venue_image = None
-            if 'images' in venue and len(venue['images']) > 0:
+            if 'images' in venue and isinstance(venue['images'], list) and len(venue['images']) > 0:
                 venue_image = venue['images'][0].get('url', None)
             
             return jsonify({
-                'name': venue.get('name', 'N/A'),
+                'name': name,
                 'address': address,
                 'city': city,
                 'postalCode': postal_code,
                 'upcomingEvents': upcoming_events,
                 'image': venue_image
             })
-        
+        else:
+            # No venue found, return venue name but other info as N/A
+            print(f"No venue found for: {venue_name}")
+            return jsonify({
+                'name': venue_name,
+                'address': 'N/A',
+                'city': 'N/A',
+                'postalCode': 'N/A',
+                'upcomingEvents': '#',
+                'image': None
+            })
+    
+    except Exception as e:
+        # Handle errors gracefully
+        print(f"Error in get_venue_details: {str(e)}")
         return jsonify({
-            'name': 'N/A',
+            'name': venue_name if 'venue_name' in locals() else 'N/A',
             'address': 'N/A',
             'city': 'N/A',
             'postalCode': 'N/A',
-            'upcomingEvents': '#'
-        })
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+            'upcomingEvents': '#',
+            'image': None
+        }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Run Flask app in debug mode for development
+    app.run(debug=True, host='0.0.0.0', port=8080)

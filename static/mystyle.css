@@ -5,12 +5,24 @@
 }
 
 body {
-    
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    color: white;
+    /* Background image */
+    background-image: url('/images/background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 46, 0.7); 
+    z-index: -1;
 }
 
 h1 {
@@ -51,6 +63,24 @@ select {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+/* hover and focus */
+input[type="text"]:hover,
+input[type="number"]:hover,
+select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(77, 208, 225, 0.5);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #4dd0e1;
+    box-shadow: 0 0 10px rgba(77, 208, 225, 0.3);
 }
 
 input[type="text"]::placeholder,
@@ -84,6 +114,7 @@ button {
     transition: all 0.3s ease;
     margin-right: 10px;
     margin-top: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .search-btn {
@@ -97,12 +128,21 @@ button {
 }
 
 button:hover {
-    opacity: 0.8;
-    transform: scale(1.05);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.search-btn:hover {
+    background: linear-gradient(135deg, #ff8555, #ffa03e);
+}
+
+.clear-btn:hover {
+    background: linear-gradient(135deg, #5aa0f2, #4585c7);
 }
 
 button:active {
-    transform: scale(0.98);
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Results Container */
@@ -137,10 +177,12 @@ th {
     font-weight: bold;
     cursor: pointer;
     user-select: none;
+    transition: all 0.3s ease;
 }
 
 th.sortable:hover {
     background: linear-gradient(135deg, #357abd, #2868a0);
+    transform: translateY(-1px);
 }
 
 tr:hover {
@@ -156,6 +198,7 @@ td a {
     color: #4a90e2;
     text-decoration: none;
     font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 td a:hover {
@@ -279,6 +322,7 @@ td a:hover {
     font-size: 1em;
     padding: 8px 15px;
     display: inline-block;
+    transition: all 0.3s ease;
 }
 
 .venue-card a:hover {
