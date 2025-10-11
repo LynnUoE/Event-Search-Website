@@ -267,7 +267,7 @@ table td:nth-child(5) {
     font-weight: bold;
 }
 
-/* Event Details Card */
+/* Event Details Card - 透明背景 */
 .event-details-card {
     max-width: 1200px;
     margin: 30px auto;
@@ -318,6 +318,7 @@ table td:nth-child(5) {
     color: #4dd0e1;
     text-decoration: none;
     font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 .details-info a:hover {
@@ -347,72 +348,69 @@ table td:nth-child(5) {
     color: white;
 }
 
-/* Ticket Status Styles */
-.ticket-status {
-    display: inline-block;
-    padding: 5px 15px;
-    border-radius: 5px;
-    font-weight: bold;
-    color: white;
+/* Venue Details Button Container */
+.venue-btn-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    text-align: center;
 }
 
 /* Venue Details Button */
 .venue-details-btn {
-    background: rgba(20, 30, 48, 0.9);
+    background: rgba(40, 50, 70, 0.95);
     color: white;
-    padding: 15px 30px;
+    padding: 15px 40px;
     border: none;
     border-radius: 8px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: normal;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 20px;
-    display: block;
-    width: 100%;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     text-align: center;
+    display: inline-block;
 }
 
 .venue-details-btn:hover {
-    background: rgba(30, 40, 58, 0.95);
+    background: rgba(50, 60, 80, 0.98);
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .venue-details-btn::after {
-    content: ' ▼';
-    font-size: 14px;
-    margin-left: 10px;
+    content: '';
+    display: block;
+    margin: 10px auto 0;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 12px solid white;
 }
 
 .venue-details-btn.expanded::after {
-    content: ' ▲';
+    border-top: none;
+    border-bottom: 12px solid white;
 }
 
-/* Venue Card */
+/* Venue Card - 白色背景 */
 .venue-card {
     max-width: 800px;
     margin: 20px auto;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 30px;
+    background: white;
+    padding: 40px;
     border-radius: 15px;
-    color: white;
+    color: #333;
     text-align: center;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 2px solid #e0e0e0;
 }
 
 .venue-card h3 {
-    color: white;
-    margin-bottom: 20px;
-    font-size: 1.8em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 2em;
+    font-weight: bold;
 }
 
 .venue-card img {
@@ -420,35 +418,36 @@ table td:nth-child(5) {
     height: auto;
     margin: 20px auto;
     display: block;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .venue-card p {
     margin: 15px 0;
     line-height: 1.8;
     font-size: 1.1em;
-    color: white;
+    color: #333;
 }
 
 .venue-card strong {
     font-weight: bold;
-    color: #4dd0e1;
+    color: #333;
 }
 
 .venue-card a {
-    color: #4dd0e1;
+    color: #4a90e2;
     text-decoration: none;
     font-weight: bold;
     font-size: 1em;
-    padding: 8px 15px;
+    padding: 10px 20px;
     display: inline-block;
     transition: all 0.3s ease;
+    margin: 5px;
 }
 
 .venue-card a:hover {
     text-decoration: underline;
-    color: #7ae3f0;
+    color: #357abd;
 }
 
 /* Responsive Design */

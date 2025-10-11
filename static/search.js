@@ -357,12 +357,16 @@ async function showDetails(eventId) {
         console.log('Event details:', details);
         
         const detailsCard = document.getElementById('detailsCard');
+        const venueCard = document.getElementById('venueCard');
+        
+        // Hide venue card when showing new event
+        venueCard.style.display = 'none';
         
         // Build artists/teams HTML with proper URLs
         const artistsHtml = details.artists && details.artists.length > 0 
             ? details.artists.map(artist => {
                 if (typeof artist === 'string') {
-                    return artist; // Fallback for old format
+                    return artist;
                 }
                 return `<a href="${artist.url}" target="_blank">${artist.name}</a>`;
             }).join(' | ')
@@ -379,7 +383,7 @@ async function showDetails(eventId) {
         };
         const statusColor = statusColors[details.ticketStatus?.toLowerCase()] || 'gray';
         
-        // Build event details card HTML
+        // Build event details card HTML (without button inside)
         detailsCard.innerHTML = `
             <div class="event-details-card">
                 <h2>${details.name}</h2>
@@ -401,7 +405,11 @@ async function showDetails(eventId) {
                     </div>
                     ${details.seatmap ? `<div class="seatmap"><img src="${details.seatmap}" alt="Seat Map"></div>` : ''}
                 </div>
-                <button class="venue-details-btn" onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')">Show Venue Details</button>
+            </div>
+            <div class="venue-btn-container">
+                <button class="venue-details-btn" onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')">
+                    Show Venue Details
+                </button>
             </div>
         `;
         
@@ -419,6 +427,9 @@ async function showDetails(eventId) {
 // Show Venue Details 
 // ============================================
 async function showVenueDetails(venueName, venueId = null) {
+    /**
+     * Toggle venue details display and fetch venue information
+     */
     try {
         const venueCard = document.getElementById('venueCard');
         const btn = document.querySelector('.venue-details-btn');
@@ -427,7 +438,7 @@ async function showVenueDetails(venueName, venueId = null) {
         if (venueCard.style.display === 'block') {
             venueCard.style.display = 'none';
             if (btn) {
-                btn.textContent = 'Show Venue Details';
+                btn.innerHTML = 'Show Venue Details';
                 btn.classList.remove('expanded');
             }
             return;
@@ -438,7 +449,7 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>Venue Information Not Available</h3>
-                    <p style="color: rgba(255, 255, 255, 0.8); font-style: italic;">
+                    <p style="color: #999; font-style: italic;">
                         No venue details found for this event.
                     </p>
                 </div>
@@ -446,7 +457,7 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.style.display = 'block';
             
             if (btn) {
-                btn.textContent = 'Hide Venue Details';
+                btn.innerHTML = 'Hide Venue Details';
                 btn.classList.add('expanded');
             }
             return;
@@ -464,11 +475,10 @@ async function showVenueDetails(venueName, venueId = null) {
         const hasValidData = venue.address !== 'N/A' || venue.city !== 'N/A' || venue.postalCode !== 'N/A';
         
         if (!hasValidData) {
-            // Display simplified venue info when detailed data is not available
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>${venue.name}</h3>
-                    <p style="color: rgba(255, 255, 255, 0.8); font-style: italic;">
+                    <p style="color: #999; font-style: italic;">
                         Detailed venue information is not available for this location.
                     </p>
                     ${venue.upcomingEvents && venue.upcomingEvents !== '#' ? 
@@ -497,7 +507,7 @@ async function showVenueDetails(venueName, venueId = null) {
                         <p>${venue.postalCode}</p>
                     </div>
                     <div style="margin-top: 20px;">
-                        <a href="${mapsUrl}" target="_blank" style="margin-right: 20px;">Open in Google Maps</a>
+                        <a href="${mapsUrl}" target="_blank">Open in Google Maps</a>
                         <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
                     </div>
                 </div>
@@ -507,9 +517,9 @@ async function showVenueDetails(venueName, venueId = null) {
         // Show venue card
         venueCard.style.display = 'block';
         
-        // Update button text and state
+        // Update button
         if (btn) {
-            btn.textContent = 'Hide Venue Details';
+            btn.innerHTML = 'Hide Venue Details';
             btn.classList.add('expanded');
         }
         
@@ -519,19 +529,18 @@ async function showVenueDetails(venueName, venueId = null) {
     } catch (error) {
         console.error('Error fetching venue details:', error);
         
-        // Display error message
         const venueCard = document.getElementById('venueCard');
         venueCard.innerHTML = `
             <div class="venue-card">
                 <h3>Error Loading Venue Details</h3>
-                <p style="color: #ff6b6b;">Unable to load venue information at this time.</p>
+                <p style="color: #d32f2f;">Unable to load venue information at this time.</p>
             </div>
         `;
         venueCard.style.display = 'block';
         
         const btn = document.querySelector('.venue-details-btn');
         if (btn) {
-            btn.textContent = 'Hide Venue Details';
+            btn.innerHTML = 'Hide Venue Details';
             btn.classList.add('expanded');
         }
     }
