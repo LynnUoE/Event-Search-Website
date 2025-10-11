@@ -52,7 +52,7 @@ const Geohash = {
 // Global Variables
 // ============================================
 let currentEvents = [];
-let sortOrder = { event: 0, genre: 0, venue: 0 };
+let sortOrder = { name: 0, genre: 0, venue: 0 };
 
 // ============================================
 // Form Value Persistence Functions
@@ -285,7 +285,7 @@ function displayResults(events) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${event.date}</td>
-            <td><img src="${event.icon}" width="50" height="50" alt="Event icon" style="object-fit: cover;"></td>
+            <td><img src="${event.icon}" width="50" height="50" alt="Event icon"></td>
             <td><a href="#" onclick="showDetails('${event.id}'); return false;">${event.name}</a></td>
             <td>${event.genre}</td>
             <td>${event.venue}</td>
@@ -312,7 +312,7 @@ function sortTable(column) {
     /**
      * Sort table by specified column
      * Parameters:
-     * - column: Column name to sort by ('event', 'genre', or 'venue')
+     * - column: Column name to sort by ('name', 'genre', or 'venue')
      * Toggles between ascending (1) and descending (-1) order
      */
     // Toggle sort order: 0 -> 1 (ascending) -> -1 (descending) -> 1 ...
@@ -325,19 +325,8 @@ function sortTable(column) {
     
     // Sort events array
     currentEvents.sort((a, b) => {
-        let valA, valB;
-        
-        // Map column names correctly
-        if (column === 'name') {
-            valA = a.name.toLowerCase();
-            valB = b.name.toLowerCase();
-        } else if (column === 'genre') {
-            valA = a.genre.toLowerCase();
-            valB = b.genre.toLowerCase();
-        } else if (column === 'venue') {
-            valA = a.venue.toLowerCase();
-            valB = b.venue.toLowerCase();
-        }
+        let valA = a[column].toLowerCase();
+        let valB = b[column].toLowerCase();
         
         if (valA < valB) return -1 * sortOrder[column];
         if (valA > valB) return 1 * sortOrder[column];
@@ -412,7 +401,7 @@ async function showDetails(eventId) {
                     </div>
                     ${details.seatmap ? `<div class="seatmap"><img src="${details.seatmap}" alt="Seat Map"></div>` : ''}
                 </div>
-                <button onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')" style="margin-top: 20px;">Show Venue Details ▼</button>
+                <button class="venue-details-btn" onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')">Show Venue Details</button>
             </div>
         `;
         
@@ -430,23 +419,16 @@ async function showDetails(eventId) {
 // Show Venue Details 
 // ============================================
 async function showVenueDetails(venueName, venueId = null) {
-    /**
-     * Toggle venue details display and fetch venue information
-     * Parameters:
-     * - venueName: Name of the venue
-     * - venueId: Optional venue ID (not currently used but available for future)
-     * If already displayed, hides the venue details
-     * If hidden, fetches and displays venue information
-     */
     try {
         const venueCard = document.getElementById('venueCard');
+        const btn = document.querySelector('.venue-details-btn');
         
         // Toggle: if already showing, hide it
         if (venueCard.style.display === 'block') {
             venueCard.style.display = 'none';
-            const btn = document.querySelector('.event-details-card button');
             if (btn) {
-                btn.textContent = 'Show Venue Details ▼';
+                btn.textContent = 'Show Venue Details';
+                btn.classList.remove('expanded');
             }
             return;
         }
@@ -456,14 +438,16 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>Venue Information Not Available</h3>
-                    <p>No venue details found for this event.</p>
+                    <p style="color: rgba(255, 255, 255, 0.8); font-style: italic;">
+                        No venue details found for this event.
+                    </p>
                 </div>
             `;
             venueCard.style.display = 'block';
             
-            const btn = document.querySelector('.event-details-card button');
             if (btn) {
-                btn.textContent = 'Hide Venue Details ▲';
+                btn.textContent = 'Hide Venue Details';
+                btn.classList.add('expanded');
             }
             return;
         }
@@ -484,7 +468,7 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>${venue.name}</h3>
-                    <p style="color: #999; font-style: italic;">
+                    <p style="color: rgba(255, 255, 255, 0.8); font-style: italic;">
                         Detailed venue information is not available for this location.
                     </p>
                     ${venue.upcomingEvents && venue.upcomingEvents !== '#' ? 
@@ -500,17 +484,17 @@ async function showVenueDetails(venueName, venueId = null) {
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
             
             const venueImageHtml = venue.image 
-                ? `<img src="${venue.image}" alt="${venue.name}" style="max-width: 200px; height: auto; margin: 20px auto; display: block;">`
+                ? `<img src="${venue.image}" alt="${venue.name}">`
                 : '';
             
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>${venue.name}</h3>
                     ${venueImageHtml}
-                    <div style="text-align: left; display: inline-block;">
-                        <p><strong>Address:</strong> ${venue.address}<br>
-                        ${venue.city}<br>
-                        ${venue.postalCode}</p>
+                    <div style="text-align: center;">
+                        <p><strong>Address:</strong> ${venue.address}</p>
+                        <p>${venue.city}</p>
+                        <p>${venue.postalCode}</p>
                     </div>
                     <div style="margin-top: 20px;">
                         <a href="${mapsUrl}" target="_blank" style="margin-right: 20px;">Open in Google Maps</a>
@@ -523,10 +507,10 @@ async function showVenueDetails(venueName, venueId = null) {
         // Show venue card
         venueCard.style.display = 'block';
         
-        // Update button text
-        const btn = document.querySelector('.event-details-card button');
+        // Update button text and state
         if (btn) {
-            btn.textContent = 'Hide Venue Details ▲';
+            btn.textContent = 'Hide Venue Details';
+            btn.classList.add('expanded');
         }
         
         // Scroll to venue card
@@ -540,10 +524,16 @@ async function showVenueDetails(venueName, venueId = null) {
         venueCard.innerHTML = `
             <div class="venue-card">
                 <h3>Error Loading Venue Details</h3>
-                <p style="color: #d32f2f;">Unable to load venue information at this time.</p>
+                <p style="color: #ff6b6b;">Unable to load venue information at this time.</p>
             </div>
         `;
         venueCard.style.display = 'block';
+        
+        const btn = document.querySelector('.venue-details-btn');
+        if (btn) {
+            btn.textContent = 'Hide Venue Details';
+            btn.classList.add('expanded');
+        }
     }
 }
 
@@ -565,7 +555,7 @@ document.getElementById('clearBtn').addEventListener('click', function() {
     document.getElementById('location').style.display = 'block';
     document.getElementById('location').setAttribute('required', 'required');
     currentEvents = [];
-    sortOrder = { event: 0, genre: 0, venue: 0 };
+    sortOrder = { name: 0, genre: 0, venue: 0 };
     console.log('Form cleared');
 });
 
