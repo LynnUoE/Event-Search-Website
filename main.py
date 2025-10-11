@@ -1,14 +1,9 @@
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 import requests
-import os
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# Enable CORS for local testing
-CORS(app)
-
-# API Key
+# API Key (Fixed: removed tab character)
 TICKETMASTER_API_KEY = 'jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1'
 
 @app.route('/')
@@ -23,8 +18,6 @@ def search_events():
         distance = request.args.get('distance', 10)
         category = request.args.get('category', 'Default')
         geohash = request.args.get('geohash')
-        
-        print(f"Search request - Keyword: {keyword}, Distance: {distance}, Category: {category}, Geohash: {geohash}")
         
         # Build Ticketmaster API URL
         url = 'https://app.ticketmaster.com/discovery/v2/events.json'
@@ -41,8 +34,6 @@ def search_events():
         
         # Call Ticketmaster API
         response = requests.get(url, params=params)
-        print(f"Ticketmaster API Status: {response.status_code}")
-        
         data = response.json()
         
         # Parse results
@@ -63,25 +54,19 @@ def search_events():
                     'venue': event['_embedded']['venues'][0]['name'] if '_embedded' in event and 'venues' in event['_embedded'] else 'N/A'
                 })
         
-        print(f"Found {len(events)} events")
         return jsonify(events)
     
     except Exception as e:
-        print(f"Error in search_events: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event/<event_id>')
 def get_event_details(event_id):
     try:
-        print(f"Getting details for event: {event_id}")
-        
         # Get event details
         url = f'https://app.ticketmaster.com/discovery/v2/events/{event_id}.json'
         params = {'apikey': TICKETMASTER_API_KEY}
         
         response = requests.get(url, params=params)
-        print(f"Event details API Status: {response.status_code}")
-        
         data = response.json()
         
         # Parse date
@@ -92,7 +77,11 @@ def get_event_details(event_id):
         # Parse artists/teams
         artists = []
         if '_embedded' in data and 'attractions' in data['_embedded']:
-            artists = [a['name'] for a in data['_embedded']['attractions']]
+            for attraction in data['_embedded']['attractions']:
+                artists.append({
+                    'name': attraction.get('name', 'N/A'),
+                    'url': attraction.get('url', '#')
+                })
         
         # Parse venue
         venue = 'N/A'
@@ -144,14 +133,12 @@ def get_event_details(event_id):
         return jsonify(details)
     
     except Exception as e:
-        print(f"Error in get_event_details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/venue')
 def get_venue_details():
     try:
         venue_name = request.args.get('name')
-        print(f"Getting venue details for: {venue_name}")
         
         url = 'https://app.ticketmaster.com/discovery/v2/venues.json'
         params = {
@@ -160,8 +147,6 @@ def get_venue_details():
         }
         
         response = requests.get(url, params=params)
-        print(f"Venue API Status: {response.status_code}")
-        
         data = response.json()
         
         if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
@@ -181,12 +166,18 @@ def get_venue_details():
             # Parse upcoming events URL
             upcoming_events = venue.get('url', '#')
             
+            # Parse venue image/logo
+            venue_image = None
+            if 'images' in venue and len(venue['images']) > 0:
+                venue_image = venue['images'][0].get('url', None)
+            
             return jsonify({
                 'name': venue.get('name', 'N/A'),
                 'address': address,
                 'city': city,
                 'postalCode': postal_code,
-                'upcomingEvents': upcoming_events
+                'upcomingEvents': upcoming_events,
+                'image': venue_image
             })
         
         return jsonify({
@@ -198,10 +189,7 @@ def get_venue_details():
         })
     
     except Exception as e:
-        print(f"Error in get_venue_details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Run on localhost with debug mode
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(debug=True)

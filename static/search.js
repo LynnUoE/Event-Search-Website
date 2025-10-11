@@ -238,8 +238,14 @@ async function showDetails(eventId) {
         
         const detailsCard = document.getElementById('detailsCard');
         
+        // Build artists/teams HTML with proper URLs
         const artistsHtml = details.artists && details.artists.length > 0 
-            ? details.artists.map(artist => `<a href="#" target="_blank">${artist}</a>`).join(' | ')
+            ? details.artists.map(artist => {
+                if (typeof artist === 'string') {
+                    return artist; // fallback for old format
+                }
+                return `<a href="${artist.url}" target="_blank">${artist.name}</a>`;
+            }).join(' | ')
             : 'N/A';
         
         const statusColors = {
@@ -287,16 +293,16 @@ async function showDetails(eventId) {
 }
 
 // ============================================
-// 9. Show Venue Details (使用 DOM 展开/隐藏)
+// 9. Show Venue Details 
 // ============================================
 async function showVenueDetails(venueName) {
     try {
         const venueCard = document.getElementById('venueCard');
         
-        // 如果已经显示，则隐藏
+        
         if (venueCard.style.display === 'block') {
             venueCard.style.display = 'none';
-            // 更新按钮文本
+            
             const btn = document.querySelector('.event-details-card button');
             if (btn) {
                 btn.textContent = 'Show Venue Details ▼';
@@ -314,22 +320,31 @@ async function showVenueDetails(venueName) {
         const fullAddress = `${venue.name}, ${venue.address}, ${venue.city}, ${venue.postalCode}`;
         const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
         
+        // Build venue image HTML
+        const venueImageHtml = venue.image 
+            ? `<img src="${venue.image}" alt="${venue.name}" style="max-width: 200px; height: auto; margin: 20px auto; display: block;">`
+            : '';
+        
         venueCard.innerHTML = `
             <div class="venue-card">
                 <h3>${venue.name}</h3>
-                <p><strong>Address:</strong><br>
-                   ${venue.address}<br>
-                   ${venue.city}<br>
-                   ${venue.postalCode}</p>
-                <p><a href="${mapsUrl}" target="_blank">Open in Google Maps</a></p>
-                <p><a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a></p>
+                ${venueImageHtml}
+                <div style="text-align: left; display: inline-block;">
+                    <p><strong>Address:</strong> ${venue.address}<br>
+                    ${venue.city}<br>
+                    ${venue.postalCode}</p>
+                </div>
+                <div style="margin-top: 20px;">
+                    <a href="${mapsUrl}" target="_blank" style="margin-right: 20px;">Open in Google Maps</a>
+                    <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
+                </div>
             </div>
         `;
         
-        // 使用 DOM 显示
+        
         venueCard.style.display = 'block';
         
-        // 更新按钮文本
+        
         const btn = document.querySelector('.event-details-card button');
         if (btn) {
             btn.textContent = 'Hide Venue Details ▲';

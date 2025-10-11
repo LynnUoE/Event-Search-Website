@@ -5,7 +5,7 @@
 }
 
 body {
-    /* 使用渐变背景代替图片 */
+    
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     min-height: 100vh;
     font-family: Arial, sans-serif;
@@ -239,33 +239,51 @@ td a:hover {
 .venue-card {
     max-width: 800px;
     margin: 20px auto;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 25px;
-    border-radius: 10px;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
     color: #333;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e0e0e0;
 }
 
 .venue-card h3 {
     color: #333;
-    margin-bottom: 15px;
-    font-size: 1.5em;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+.venue-card img {
+    max-width: 200px;
+    height: auto;
+    margin: 20px auto;
+    display: block;
 }
 
 .venue-card p {
-    margin: 10px 0;
-    line-height: 1.6;
+    margin: 15px 0;
+    line-height: 1.8;
+    font-size: 1.1em;
+}
+
+.venue-card strong {
+    font-weight: bold;
+    color: #333;
 }
 
 .venue-card a {
     color: #4a90e2;
     text-decoration: none;
     font-weight: bold;
+    font-size: 1em;
+    padding: 8px 15px;
+    display: inline-block;
 }
 
 .venue-card a:hover {
     text-decoration: underline;
+    color: #357abd;
 }
 
 /* Responsive Design */
