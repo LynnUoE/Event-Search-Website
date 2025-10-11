@@ -449,7 +449,7 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>Venue Information Not Available</h3>
-                    <p style="color: #999; font-style: italic;">
+                    <p style="color: #999; font-style: italic; margin-top: 20px;">
                         No venue details found for this event.
                     </p>
                 </div>
@@ -478,18 +478,18 @@ async function showVenueDetails(venueName, venueId = null) {
             venueCard.innerHTML = `
                 <div class="venue-card">
                     <h3>${venue.name}</h3>
-                    <p style="color: #999; font-style: italic;">
+                    <p style="color: #999; font-style: italic; margin-top: 20px;">
                         Detailed venue information is not available for this location.
                     </p>
                     ${venue.upcomingEvents && venue.upcomingEvents !== '#' ? 
-                        `<div style="margin-top: 20px;">
-                            <a href="${venue.upcomingEvents}" target="_blank">View more events</a>
+                        `<div style="margin-top: 30px;">
+                            <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
                         </div>` : ''
                     }
                 </div>
             `;
         } else {
-            // Display complete venue information
+            // Display complete venue information with two-column layout
             const fullAddress = `${venue.name}, ${venue.address}, ${venue.city}, ${venue.postalCode}`;
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
             
@@ -501,14 +501,18 @@ async function showVenueDetails(venueName, venueId = null) {
                 <div class="venue-card">
                     <h3>${venue.name}</h3>
                     ${venueImageHtml}
-                    <div style="text-align: center;">
-                        <p><strong>Address:</strong> ${venue.address}</p>
-                        <p>${venue.city}</p>
-                        <p>${venue.postalCode}</p>
-                    </div>
-                    <div style="margin-top: 20px;">
-                        <a href="${mapsUrl}" target="_blank">Open in Google Maps</a>
-                        <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
+                    <div class="venue-info-container">
+                        <div class="venue-address">
+                            <p><strong>Address:</strong> ${venue.address}<br>
+                            ${venue.city}<br>
+                            ${venue.postalCode}</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${mapsUrl}" target="_blank">Open in Google Maps</a>
+                            </p>
+                        </div>
+                        <div class="venue-links">
+                            <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -533,7 +537,7 @@ async function showVenueDetails(venueName, venueId = null) {
         venueCard.innerHTML = `
             <div class="venue-card">
                 <h3>Error Loading Venue Details</h3>
-                <p style="color: #d32f2f;">Unable to load venue information at this time.</p>
+                <p style="color: #d32f2f; margin-top: 20px;">Unable to load venue information at this time.</p>
             </div>
         `;
         venueCard.style.display = 'block';

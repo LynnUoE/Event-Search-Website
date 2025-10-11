@@ -164,10 +164,11 @@ button:active {
 #resultsContainer {
     max-width: 1200px;
     margin: 30px auto;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: white;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 4px solid #000;
 }
 
 /* Results Table */
@@ -175,24 +176,25 @@ table {
     width: 100%;
     border-collapse: collapse;
     background: white;
-    border-radius: 8px;
-    overflow: hidden;
 }
 
 th, td {
     padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-    color: #333;
+    text-align: center;
+    border: 1px solid #000;
+    color: #000;
+    vertical-align: middle;
 }
 
 th {
-    background: linear-gradient(135deg, #4a90e2, #357abd);
-    color: white;
+    background: #f5f5f5;
+    color: #000;
     font-weight: bold;
+    font-size: 18px;
     cursor: default;
     user-select: none;
-    transition: all 0.3s ease;
+    border: 2px solid #000;
+    text-align: center;
 }
 
 th.sortable {
@@ -200,16 +202,64 @@ th.sortable {
 }
 
 th.sortable:hover {
-    background: linear-gradient(135deg, #357abd, #2868a0);
-    transform: translateY(-1px);
+    background: #e8e8e8;
+}
+
+tbody tr {
+    background: white;
+}
+
+tbody tr:nth-child(even) {
+    background: #fafafa;
 }
 
 tbody tr:hover {
-    background: #f5f5f5;
+    background: #f0f0f0;
 }
 
 thead tr:hover {
-    background: transparent;
+    background: #f5f5f5;
+}
+
+td {
+    border: 1px solid #000;
+    font-size: 15px;
+    text-align: center;
+}
+
+/* Date column - center aligned */
+table th:nth-child(1),
+table td:nth-child(1) {
+    width: 15%;
+    text-align: center;
+}
+
+/* Icon column - center aligned */
+table th:nth-child(2),
+table td:nth-child(2) {
+    width: 12%;
+    text-align: center;
+}
+
+/* Event column - center aligned */
+table th:nth-child(3),
+table td:nth-child(3) {
+    width: 35%;
+    text-align: center;
+}
+
+/* Genre column - center aligned */
+table th:nth-child(4),
+table td:nth-child(4) {
+    width: 18%;
+    text-align: center;
+}
+
+/* Venue column - center aligned */
+table th:nth-child(5),
+table td:nth-child(5) {
+    width: 20%;
+    text-align: center;
 }
 
 td img {
@@ -217,45 +267,17 @@ td img {
     object-fit: cover;
     display: block;
     margin: 0 auto;
+    border: 1px solid #ddd;
 }
 
 td a {
-    color: #4a90e2;
+    color: #000;
     text-decoration: none;
-    font-weight: bold;
-    transition: all 0.3s ease;
+    font-weight: normal;
 }
 
 td a:hover {
     text-decoration: underline;
-    color: #357abd;
-}
-
-/* Table column widths */
-table th:nth-child(1),
-table td:nth-child(1) {
-    width: 15%;
-}
-
-table th:nth-child(2),
-table td:nth-child(2) {
-    width: 10%;
-    text-align: center;
-}
-
-table th:nth-child(3),
-table td:nth-child(3) {
-    width: 35%;
-}
-
-table th:nth-child(4),
-table td:nth-child(4) {
-    width: 20%;
-}
-
-table th:nth-child(5),
-table td:nth-child(5) {
-    width: 20%;
 }
 
 /* No Results Message */
@@ -265,16 +287,17 @@ table td:nth-child(5) {
     font-size: 18px;
     color: #d32f2f;
     font-weight: bold;
+    background: white;
 }
 
-/* Event Details Card - 透明背景 */
+/* Event Details Card - 透明背景，优化尺寸 */
 .event-details-card {
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 30px auto;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 30px;
+    padding: 30px 40px;
     border-radius: 15px;
     color: white;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
@@ -283,41 +306,46 @@ table td:nth-child(5) {
 
 .event-details-card h2 {
     color: white;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     text-align: center;
-    font-size: 1.8em;
+    font-size: 1.6em;
+    font-weight: normal;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    line-height: 1.3;
 }
 
 .details-content {
     display: flex;
     gap: 30px;
     flex-wrap: wrap;
+    align-items: flex-start;
 }
 
 .details-info {
     flex: 1;
-    min-width: 300px;
+    min-width: 280px;
 }
 
 .details-info p {
-    margin-bottom: 15px;
-    line-height: 1.6;
+    margin-bottom: 12px;
+    line-height: 1.5;
     color: white;
+    font-size: 0.95em;
 }
 
 .details-info strong {
     color: #4dd0e1;
     display: block;
     margin-bottom: 5px;
-    font-size: 0.9em;
+    font-size: 0.85em;
     font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 .details-info a {
     color: #4dd0e1;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: normal;
     transition: all 0.3s ease;
 }
 
@@ -329,11 +357,13 @@ table td:nth-child(5) {
 .seatmap {
     flex: 1;
     text-align: center;
-    min-width: 300px;
+    min-width: 280px;
+    max-width: 400px;
 }
 
 .seatmap img {
     max-width: 100%;
+    width: 350px;
     height: auto;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
@@ -393,61 +423,88 @@ table td:nth-child(5) {
     border-bottom: 12px solid white;
 }
 
-/* Venue Card - 白色背景 */
+/* Venue Card */
 .venue-card {
-    max-width: 800px;
+    max-width: 900px;
     margin: 20px auto;
     background: white;
     padding: 40px;
-    border-radius: 15px;
+    border-radius: 20px;
     color: #333;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border: 2px solid #e0e0e0;
+    border: 3px solid #e0e0e0;
 }
 
 .venue-card h3 {
     color: #333;
-    margin-bottom: 25px;
-    font-size: 2em;
+    margin-bottom: 30px;
+    font-size: 2.2em;
     font-weight: bold;
 }
 
 .venue-card img {
-    max-width: 200px;
+    max-width: 250px;
     height: auto;
-    margin: 20px auto;
+    margin: 20px auto 30px;
     display: block;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.venue-card p {
-    margin: 15px 0;
-    line-height: 1.8;
+/* Venue Info Container */
+.venue-info-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 40px;
+    margin-top: 30px;
+    padding: 20px 0;
+}
+
+.venue-address {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    border-right: 2px solid #ddd;
+}
+
+.venue-address p {
+    margin: 8px 0;
+    line-height: 1.6;
     font-size: 1.1em;
     color: #333;
 }
 
-.venue-card strong {
-    font-weight: bold;
+.venue-address strong {
+    display: block;
+    margin-bottom: 10px;
     color: #333;
+    font-size: 1em;
+}
+
+.venue-links {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
 }
 
 .venue-card a {
-    color: #4a90e2;
+    color: #00a8e1;
     text-decoration: none;
-    font-weight: bold;
-    font-size: 1em;
+    font-weight: normal;
+    font-size: 1.1em;
     padding: 10px 20px;
     display: inline-block;
     transition: all 0.3s ease;
-    margin: 5px;
 }
 
 .venue-card a:hover {
     text-decoration: underline;
-    color: #357abd;
+    color: #0086b3;
 }
 
 /* Responsive Design */
