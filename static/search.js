@@ -285,7 +285,7 @@ function displayResults(events) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${event.date}</td>
-            <td><img src="${event.icon}" width="50" height="50" alt="Event icon"></td>
+            <td><img src="${event.icon}" width="50" height="50" alt="Event icon" style="object-fit: cover;"></td>
             <td><a href="#" onclick="showDetails('${event.id}'); return false;">${event.name}</a></td>
             <td>${event.genre}</td>
             <td>${event.venue}</td>
@@ -325,8 +325,19 @@ function sortTable(column) {
     
     // Sort events array
     currentEvents.sort((a, b) => {
-        let valA = a[column].toLowerCase();
-        let valB = b[column].toLowerCase();
+        let valA, valB;
+        
+        // Map column names correctly
+        if (column === 'name') {
+            valA = a.name.toLowerCase();
+            valB = b.name.toLowerCase();
+        } else if (column === 'genre') {
+            valA = a.genre.toLowerCase();
+            valB = b.genre.toLowerCase();
+        } else if (column === 'venue') {
+            valA = a.venue.toLowerCase();
+            valB = b.venue.toLowerCase();
+        }
         
         if (valA < valB) return -1 * sortOrder[column];
         if (valA > valB) return 1 * sortOrder[column];

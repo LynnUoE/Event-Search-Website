@@ -32,8 +32,9 @@
             </div>
             
             <label>Location <span style="color: red;">*</span></label>
-            <div>
-                <input type="checkbox" id="autoDetect"> Auto-Detect Location
+            <div class="checkbox-container">
+                <input type="checkbox" id="autoDetect">
+                <label for="autoDetect" style="display: inline; margin: 0; cursor: pointer; color: white;">Auto-Detect Location</label>
             </div>
             <input type="text" id="location" required>
             
@@ -51,7 +52,7 @@
                 <tr>
                     <th>Date</th>
                     <th>Icon</th>
-                    <th class="sortable" data-column="event">Event ▲▼</th>
+                    <th class="sortable" data-column="name">Event ▲▼</th>
                     <th class="sortable" data-column="genre">Genre ▲▼</th>
                     <th class="sortable" data-column="venue">Venue ▲▼</th>
                 </tr>
@@ -69,7 +70,6 @@
     <!-- Venue Details Card -->
     <div id="venueCard" style="display: none;"></div>
 
-    <!--  Geohash  -->
     <script src="search.js"></script>
 </body>
 </html>
