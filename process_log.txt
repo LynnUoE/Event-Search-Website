@@ -1,0 +1,395 @@
+Assignment 2 AI Assistance Process Log
+Student: Linxuan Chen
+Student ID: 9764804625
+
+---------------------------------------------------------------------------------------------
+ACKNOWLEGEMENT
+
+
+This assignment was completed with the assistance of Claude AI (Anthropic). I used Claude AI throughout the development process to help generate code, debug issues, optimize implementations, and provide explanations for various technical concepts. Specifically, Claude assisted with: implementing the geohash encoding algorithm in JavaScript, designing the Flask backend API structure and routing, creating CSS styling for the glassmorphism effect and responsive layouts, debugging form value persistence after search operations, implementing table sorting functionality with toggle states, developing the dynamic venue details toggle mechanism, and optimizing the event details card layout and dimensions. All AI-generated code was reviewed, tested, and modified by me to ensure correctness and compliance with assignment requirements. I take full responsibility for the final implementation and have documented the AI assistance process in the entries below and GitHub repository as required by the course policy.
+
+---------------------------------------------------------------------------------------------
+
+Entry 1: Event Details Card Optimization
+
+Prompt: "The event details card is too large and the text is too big. Optimize the font sizes, padding, and image dimensions to make the card more compact while maintaining readability and matching the reference design."
+
+Issues: The initial styling made the event details card too large and visually overwhelming. The title font size (1.8em) was too large, paragraph spacing was excessive, and the overall card width (1200px) took up too much screen space. This didn't match the more compact design shown in the assignment reference images, where information is presented more efficiently.
+
+Fix: Reduce the event details card dimensions. Change max-width from 1200px to 1000px, reduce h2 font-size from 1.8em to 1.6em and change font-weight to normal, reduce paragraph font-size to 0.95em, decrease paragraph margin-bottom from 15px to 12px, and limit seatmap image width to 350px. This create a more compact, readable layout.
+
+Fixed Code in mystley.css: 
+.event-details-card {
+    max-width: 1000px;
+    margin: 30px auto;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 30px 40px;
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.event-details-card h2 {
+    color: white;
+    margin-bottom: 25px;
+    text-align: center;
+    font-size: 1.6em;
+    font-weight: normal;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    line-height: 1.3;
+}
+
+.details-info p {
+    margin-bottom: 12px;
+    line-height: 1.5;
+    color: white;
+    font-size: 0.95em;
+}
+
+.seatmap img {
+    max-width: 100%;
+    width: 350px;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+Explanation: These size optimizations improve user experience by presenting information more efficiently without sacrificing readability. Reducing font sizes and spacing creates a more professional, compact layout that matches modern web design standards. The smaller card width ensures better visual hierarchy and prevents the card from dominating the viewport unnecessarily.
+
+---------------------------------------------------------------------------------------------
+
+Entry 2: Venue Logo Display Implementation
+
+Prompt: "Update the venue details card to display the venue's logo image if available from the API response. The logo should be centered, have a maximum width of 250px, be displayed between the venue name and address information, and include proper styling with border-radius and box-shadow."
+
+Issues: The initial implementation did not include venue logo display functionality. According to Figure 11 in the assignment specification, venue cards should display the venue's logo image when available from the Ticketmaster API. The logo should be prominently displayed below the venue name to provide visual branding and improve user recognition of the venue.
+
+Fix: Add venue logo display functionality to the showVenueDetails function. Check if venue.image exists in the API response, and if so, create an img element with the venue logo. The image should be styled with max-width: 250px, centered with margin: 20px auto 30px, displayed as a block element, include border-radius: 10px, and box-shadow: 0 4px 8px rgba(0,0,0,0.3) for visual depth.
+
+Fixed Code in search.js:
+// In showVenueDetails function
+const venueImageHtml = venue.image 
+    ? `<img src="${venue.image}" alt="${venue.name}">`
+    : '';
+
+venueCard.innerHTML = `
+    <div class="venue-card">
+        <h3>${venue.name}</h3>
+        ${venueImageHtml}
+        <div class="venue-info-container">
+            <div class="venue-address">
+                <p><strong>Address:</strong> ${venue.address}<br>
+                ${venue.city}<br>
+                ${venue.postalCode}</p>
+                <p style="margin-top: 20px;">
+                    <a href="${mapsUrl}" target="_blank">Open in Google Maps</a>
+                </p>
+            </div>
+            <div class="venue-links">
+                <a href="${venue.upcomingEvents}" target="_blank">More events at this venue</a>
+            </div>
+        </div>
+    </div>
+`;
+CSS Added:
+css.venue-card img {
+    max-width: 250px;
+    height: auto;
+    margin: 20px auto 30px;
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+Explanation: This enhancement improves venue identification by displaying official venue logos when available from the API. The conditional rendering using a ternary operator ensures graceful handling of missing images, preventing broken image placeholders. The centered positioning and shadow styling create visual hierarchy, making the logo a focal point that enhances brand recognition and professional appearance.
+
+---------------------------------------------------------------------------------------------
+
+Entry 3: Form Value Persistence After Search
+
+Prompt: "When the user clicks the SEARCH button, the form should maintain all the previously entered values after displaying the results. Currently, the form is being reset or cleared after each search, which creates a poor user experience. Implement functions to save and restore form values including keyword, distance, category, location, and auto-detect checkbox state."
+
+Issues: After submitting the search form, all input values were being cleared or reset to defaults. This violated the assignment requirement that "the page maintains the previous input values after displaying the results table." Users had to re-enter their search criteria if they wanted to modify a search, creating unnecessary friction. The auto-detect checkbox state was also not being preserved, causing the location field visibility to reset incorrectly.
+
+Fix: Create saveFormValues() and restoreFormValues() functions. Before making the API call in the search submit handler, save all form field values including keyword, distance, category, location, and autoDetect checkbox state to a formData object. After the search completes and results are displayed, use setTimeout() to call restoreFormValues() with the saved data. This ensures form values persist after DOM updates. Also handle the location field visibility based on the restored autoDetect state.
+
+Fixed Code in search.js:
+function saveFormValues() {
+    const formData = {
+        keyword: document.getElementById('keyword').value,
+        distance: document.getElementById('distance').value,
+        category: document.getElementById('category').value,
+        location: document.getElementById('location').value,
+        autoDetect: document.getElementById('autoDetect').checked
+    };
+    return formData;
+}
+
+function restoreFormValues(formData) {
+    if (formData) {
+        document.getElementById('keyword').value = formData.keyword || '';
+        document.getElementById('distance').value = formData.distance || '';
+        document.getElementById('category').value = formData.category || 'Default';
+        document.getElementById('location').value = formData.location || '';
+        document.getElementById('autoDetect').checked = formData.autoDetect || false;
+        
+        if (formData.autoDetect) {
+            document.getElementById('location').style.display = 'none';
+            document.getElementById('location').removeAttribute('required');
+        } else {
+            document.getElementById('location').style.display = 'block';
+            document.getElementById('location').setAttribute('required', 'required');
+        }
+    }
+}
+
+// In search form submission handler
+document.getElementById('searchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = saveFormValues();
+    
+    // ... perform search ...
+    
+    setTimeout(() => {
+        restoreFormValues(formData);
+    }, 100);
+});
+
+Explanation: Form value persistence is critical for good user experience, allowing users to iteratively refine searches without re-entering data. The saveFormValues function captures the complete form state before any DOM manipulation, while restoreFormValues reapplies these values after results are rendered. The setTimeout ensures restoration happens after React-like state updates complete. This pattern respects the principle of maintaining user context and reduces cognitive load during interaction.
+
+---------------------------------------------------------------------------------------------
+
+Entry 4: Geohash Encoding Implementation
+
+Prompt: "Implement a self-contained JavaScript geohash encoding function that converts latitude and longitude coordinates to a 7-character geohash string. The function should follow the standard geohash algorithm using base32 encoding and interleaving latitude/longitude bits. This is needed to convert geocoded locations into the format required by the Ticketmaster API's geoPoint parameter."
+
+Issues: The Ticketmaster Event Search API requires location data in geohash format rather than raw latitude/longitude coordinates. Initially, there was no geohash conversion capability, which would prevent the search functionality from working. The assignment specification requires either using a Python library (geolib) on the server side or implementing the algorithm in JavaScript on the client side. I chose the client-side approach to reduce server dependencies.
+
+Fix: Create a self-contained Geohash object with an encode method that implements the standard geohash algorithm. The method takes latitude, longitude, and precision as parameters. It uses bit interleaving to alternate between longitude and latitude bits, building a 5-bit index that maps to base32 characters. The implementation maintains min/max bounds for lat and lon, updating them based on bit comparisons until the desired precision is reached.
+
+Fixed Code in search.js:
+const Geohash = {
+    base32: '0123456789bcdefghjkmnpqrstuvwxyz',
+    
+    encode: function(latitude, longitude, precision = 7) {
+        let idx = 0;
+        let bit = 0;
+        let evenBit = true;
+        let geohash = '';
+        
+        let latMin = -90, latMax = 90;
+        let lonMin = -180, lonMax = 180;
+        
+        while (geohash.length < precision) {
+            if (evenBit) {
+                const lonMid = (lonMin + lonMax) / 2;
+                if (longitude > lonMid) {
+                    idx = (idx << 1) + 1;
+                    lonMin = lonMid;
+                } else {
+                    idx = idx << 1;
+                    lonMax = lonMid;
+                }
+            } else {
+                const latMid = (latMin + latMax) / 2;
+                if (latitude > latMid) {
+                    idx = (idx << 1) + 1;
+                    latMin = latMid;
+                } else {
+                    idx = idx << 1;
+                    latMax = latMid;
+                }
+            }
+            evenBit = !evenBit;
+            
+            if (++bit === 5) {
+                geohash += this.base32[idx];
+                bit = 0;
+                idx = 0;
+            }
+        }
+        
+        return geohash;
+    }
+};
+
+Explanation: This implementation enables integration with the Ticketmaster API without external dependencies. The geohash algorithm efficiently encodes geographic coordinates into a string representation by recursively subdividing the coordinate space and using bit manipulation. The alternating even/odd bit pattern interleaves longitude and latitude data, creating a spatially coherent encoding where similar geohashes represent nearby locations, which is crucial for radius-based event searches.
+
+---------------------------------------------------------------------------------------------
+
+Entry 5: Dynamic Venue Details Toggle
+
+Prompt: "Implement a toggle mechanism for the venue details section that allows users to show and hide venue information by clicking the 'Show Venue Details' button. When clicked, the button should fetch venue data if not already displayed, show the venue card, change the button text to 'Hide Venue Details', flip the arrow direction, and scroll the page to the venue card. Clicking again should hide the card and restore the original button state."
+
+Issues: The initial implementation had the venue details button that always fetched and displayed data without checking if the venue card was already visible. This caused unnecessary API calls and didn't provide users with a way to collapse the venue information once opened. The assignment specification shows that the button should act as a toggle with visual feedback (arrow direction change) and the text should update to reflect the current state.
+
+Fix: Add conditional logic at the start of showVenueDetails() to check if venueCard.style.display === 'block'. If true, hide the card, update button text to 'Show Venue Details', remove the 'expanded' class, and return early. Otherwise, proceed with fetching venue data. After successfully displaying venue details, update the button text to 'Hide Venue Details' and add the 'expanded' class. Use CSS to rotate the arrow in the ::after pseudo-element when the button has the expanded class.
+
+Fixed Code in search.js:
+async function showVenueDetails(venueName, venueId = null) {
+    try {
+        const venueCard = document.getElementById('venueCard');
+        const btn = document.querySelector('.venue-details-btn');
+        
+        // Toggle: if already showing, hide it
+        if (venueCard.style.display === 'block') {
+            venueCard.style.display = 'none';
+            if (btn) {
+                btn.innerHTML = 'Show Venue Details';
+                btn.classList.remove('expanded');
+            }
+            return;
+        }
+        
+        // ... fetch venue data ...
+        
+        // Show venue card
+        venueCard.style.display = 'block';
+        
+        // Update button
+        if (btn) {
+            btn.innerHTML = 'Hide Venue Details';
+            btn.classList.add('expanded');
+        }
+        
+        // Scroll to venue card
+        venueCard.scrollIntoView({ behavior: 'smooth' });
+        
+    } catch (error) {
+        console.error('Error fetching venue details:', error);
+    }
+}
+
+Explanation: This toggle implementation improves user control and reduces unnecessary API calls by checking the current display state before fetching data. The early return pattern prevents redundant data fetching when users want to simply collapse the venue section. Visual feedback through button text changes and CSS arrow rotation provides clear affordance, helping users understand the current state and available actions, which aligns with Nielsen's visibility of system status usability heuristic.
+
+---------------------------------------------------------------------------------------------
+
+Entry 6: Table Sorting Implementation
+
+Prompt: Implement ascending and descending sorting for the Event, Genre, and Venue columns in the search results table. When a user clicks on a sortable column header, the table should sort by that column, toggling between ascending and descending order on repeated clicks. Other columns should reset to unsorted state. The sorting should be case-insensitive and maintain the current search results.
+
+Issues: The table initially displayed search results but had no sorting capability. The assignment rubric allocates 1.5 points for proper sorting functionality (0.5 points per column for both ascending and descending order). Without sorting, users cannot organize results by event name, genre, or venue, which limits the usability of the search results table, especially when many events are returned.
+
+Fix: Create a sortOrder object to track the current sort direction for each sortable column. Implement a sortTable(column) function that toggles the sort order between 1 (ascending), -1 (descending), and resets other columns to 0. Use Array.sort() with a comparator function that converts values to lowercase for case-insensitive comparison. After sorting the currentEvents array, call displayResults() to re-render the table with sorted data. Add click event listeners to elements with the 'sortable' class.
+
+Fixed Code in search.js;
+let sortOrder = { name: 0, genre: 0, venue: 0 };
+
+function sortTable(column) {
+    sortOrder[column] = sortOrder[column] === 1 ? -1 : 1;
+    
+    for (let key in sortOrder) {
+        if (key !== column) sortOrder[key] = 0;
+    }
+    
+    currentEvents.sort((a, b) => {
+        let valA = a[column].toLowerCase();
+        let valB = b[column].toLowerCase();
+        
+        if (valA < valB) return -1 * sortOrder[column];
+        if (valA > valB) return 1 * sortOrder[column];
+        return 0;
+    });
+    
+    displayResults(currentEvents);
+}
+
+document.querySelectorAll('.sortable').forEach(header => {
+    header.addEventListener('click', function() {
+        const column = this.dataset.column;
+        sortTable(column);
+    });
+});
+
+and in events.html:
+<th class="sortable" data-column="name">Event ▲▼</th>
+<th class="sortable" data-column="genre">Genre ▲▼</th>
+<th class="sortable" data-column="venue">Venue ▲▼</th>
+
+Explanation: This sorting implementation enhances data exploration by allowing users to organize results based on different attributes. The toggle mechanism (unsorted → ascending → descending → ascending) provides intuitive interaction without requiring separate ascending/descending buttons. Case-insensitive sorting ensures proper alphabetical ordering regardless of capitalization. The data-column attribute pattern cleanly separates presentation from logic, making the code maintainable and extensible if additional sortable columns are needed.
+
+---------------------------------------------------------------------------------------------
+
+Entry 7: Flask Backend API Structure
+
+Prompt: "Create a Flask backend with three API endpoints: /api/search for event searches, /api/event/<event_id> for event details, and /api/venue for venue information. Each endpoint should extract query parameters, make requests to the Ticketmaster API with the proper API key, parse the JSON responses, and return formatted data to the frontend. Implement proper error handling for all endpoints."`
+
+Issues: The assignment requires a Python Flask backend to proxy all Ticketmaster API calls. Calling Ticketmaster directly from JavaScript would result in a 4-point penalty. The backend needs to handle multiple types of requests: search queries with filters, specific event detail requests, and venue information lookups. Each requires different Ticketmaster API endpoints with different parameters. Error handling was needed to prevent server crashes from malformed requests or API failures.
+
+Fix: Structure the Flask app with three route handlers decorated with @app.route(). In /api/search, extract keyword, distance, category, and geohash from request.args, build the Ticketmaster event search URL with proper parameters, make the request, parse the JSON response, extract relevant fields (id, name, date, icon, genre, venue) from each event, and return as JSON array. Wrap all logic in try-except blocks to catch and return errors as JSON with 500 status code.
+
+Fixed code in main.py:
+app = Flask(__name__, static_folder='static', static_url_path='')
+
+TICKETMASTER_API_KEY = 'jojFIRo2FHGGqS1uAjnQIfKPuCzdGYz1'
+
+@app.route('/api/search')
+def search_events():
+    try:
+        keyword = request.args.get('keyword')
+        distance = request.args.get('distance', 10)
+        category = request.args.get('category', 'Default')
+        geohash = request.args.get('geohash')
+        
+        url = 'https://app.ticketmaster.com/discovery/v2/events.json'
+        params = {
+            'apikey': TICKETMASTER_API_KEY,
+            'keyword': keyword,
+            'radius': distance,
+            'unit': 'miles',
+            'geoPoint': geohash
+        }
+        
+        if category != 'Default':
+            params['segmentId'] = category
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        events = []
+        if '_embedded' in data and 'events' in data['_embedded']:
+            for event in data['_embedded']['events']:
+                date_str = event['dates']['start'].get('localDate', 'N/A')
+                time_str = event['dates']['start'].get('localTime', '')
+                formatted_date = f"{date_str} {time_str}".strip()
+                
+                events.append({
+                    'id': event['id'],
+                    'name': event['name'],
+                    'date': formatted_date,
+                    'icon': event['images'][0]['url'] if event.get('images') else '',
+                    'genre': event['classifications'][0]['segment']['name'] if event.get('classifications') else 'N/A',
+                    'venue': event['_embedded']['venues'][0]['name'] if '_embedded' in event and 'venues' in event['_embedded'] else 'N/A'
+                })
+        
+        return jsonify(events)
+    
+    except Exception as e:
+        print(f"Error in search_events: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event/<event_id>')
+def get_event_details(event_id):
+    try:
+        url = f'https://app.ticketmaster.com/discovery/v2/events/{event_id}.json'
+        params = {'apikey': TICKETMASTER_API_KEY}
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        # Extract and format event details...
+        
+        return jsonify(details)
+    
+    except Exception as e:
+        print(f"Error in get_event_details: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+Explanation: This Flask backend architecture properly separates concerns by handling all external API calls server-side, protecting API keys and complying with assignment requirements. The use of request.args.get() with default values prevents KeyError exceptions from missing parameters. The try-except blocks ensure graceful error handling, returning informative error messages rather than exposing internal server errors. Parsing and reformatting JSON responses reduces client-side processing and bandwidth, improving application performance and maintainability.
+
+---------------------------------------------------------------------------------------------
+
+END OF LOG
