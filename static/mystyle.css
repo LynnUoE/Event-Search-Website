@@ -290,7 +290,7 @@ td a:hover {
     background: white;
 }
 
-/* Event Details Card - 透明背景，优化尺寸 */
+/* Event Details Card */
 .event-details-card {
     max-width: 1000px;
     margin: 30px auto;
