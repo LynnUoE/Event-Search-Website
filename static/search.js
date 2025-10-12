@@ -77,22 +77,37 @@ function restoreFormValues(formData) {
      * Restore form values after search completion
      * Parameters:
      * - formData: Object containing form field values
+     * ENHANCED: Added null checks and explicit visibility control
      */
     if (formData) {
-        document.getElementById('keyword').value = formData.keyword || '';
-        document.getElementById('distance').value = formData.distance || '';
-        document.getElementById('category').value = formData.category || 'Default';
-        document.getElementById('location').value = formData.location || '';
-        document.getElementById('autoDetect').checked = formData.autoDetect || false;
+        // Restore each field with verification
+        const keywordInput = document.getElementById('keyword');
+        if (keywordInput) keywordInput.value = formData.keyword || '';
         
-        // Trigger auto-detect change event to show/hide location field correctly
-        if (formData.autoDetect) {
-            document.getElementById('location').style.display = 'none';
-            document.getElementById('location').removeAttribute('required');
-        } else {
-            document.getElementById('location').style.display = 'block';
-            document.getElementById('location').setAttribute('required', 'required');
+        const distanceInput = document.getElementById('distance');
+        if (distanceInput) distanceInput.value = formData.distance || '';
+        
+        const categorySelect = document.getElementById('category');
+        if (categorySelect) categorySelect.value = formData.category || 'Default';
+        
+        const locationInput = document.getElementById('location');
+        if (locationInput) locationInput.value = formData.location || '';
+        
+        const autoDetectCheckbox = document.getElementById('autoDetect');
+        if (autoDetectCheckbox && locationInput) {
+            autoDetectCheckbox.checked = formData.autoDetect || false;
+            
+            // Manually trigger the visibility logic for location field
+            if (formData.autoDetect) {
+                locationInput.style.display = 'none';
+                locationInput.removeAttribute('required');
+            } else {
+                locationInput.style.display = 'block';
+                locationInput.setAttribute('required', 'required');
+            }
         }
+        
+        console.log('Form values restored:', formData);
     }
 }
 
@@ -191,6 +206,7 @@ document.getElementById('searchForm').addEventListener('submit', async function(
      * - Calls backend API to search events
      * - Displays results
      * - Preserves form values after search
+     * FIXED: Enhanced form value persistence using requestAnimationFrame
      */
     e.preventDefault();
     
@@ -237,16 +253,22 @@ document.getElementById('searchForm').addEventListener('submit', async function(
         currentEvents = events;
         displayResults(events);
         
-        // Restore form values after search completes
-        setTimeout(() => {
-            restoreFormValues(formData);
-        }, 100);
+        // FIXED: Use double requestAnimationFrame to ensure DOM is fully updated
+        // This prevents race conditions and ensures form values are maintained correctly
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                restoreFormValues(formData);
+                console.log('Form values restored successfully');
+            });
+        });
         
     } catch (error) {
         console.error('Search error:', error);
         alert('Error performing search: ' + error.message);
         // Restore form values even if error occurs
-        restoreFormValues(formData);
+        requestAnimationFrame(() => {
+            restoreFormValues(formData);
+        });
     }
 });
 
@@ -338,19 +360,20 @@ function sortTable(column) {
 }
 
 // ============================================
-// Show Event Details
+// Show Event Details - COMPLETE VERSION
 // ============================================
 async function showDetails(eventId) {
     /**
      * Fetch and display detailed information for a specific event
-     * Parameters:
-     * - eventId: Ticketmaster event ID
-     * Creates event details card with all available information
+     * COMPLETE FIX: Properly hides all N/A fields per assignment requirements
+     * 
+     * Requirements from description:
+     * "If the returned JSON stream doesn't contain certain fields, 
+     *  those fields will not appear on the detail page."
      */
     try {
         console.log('Fetching details for event:', eventId);
         
-        // Fetch event details from backend
         const response = await fetch(`/api/event/${eventId}`);
         const details = await response.json();
         
@@ -362,52 +385,118 @@ async function showDetails(eventId) {
         // Hide venue card when showing new event
         venueCard.style.display = 'none';
         
-        // Build artists/teams HTML with proper URLs
-        const artistsHtml = details.artists && details.artists.length > 0 
-            ? details.artists.map(artist => {
+        // ========================================
+        // Helper Functions
+        // ========================================
+        
+        /**
+         * Check if a value should be displayed (not N/A, null, undefined, or empty)
+         */
+        const shouldDisplay = (value) => {
+            if (value === null || value === undefined) return false;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed !== '' && trimmed !== 'N/A';
+            }
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
+            return true;
+        };
+        
+        /**
+         * Build HTML for a field only if it should be displayed
+         */
+        const buildField = (label, value, isHtml = false) => {
+            if (!shouldDisplay(value)) return '';
+            const content = isHtml ? value : value;
+            return `<p><strong>${label}</strong><br>${content}</p>`;
+        };
+        
+        // ========================================
+        // Process Artists/Teams
+        // ========================================
+        let artistsHtml = null;
+        if (details.artists && Array.isArray(details.artists) && details.artists.length > 0) {
+            artistsHtml = details.artists.map(artist => {
                 if (typeof artist === 'string') {
                     return artist;
                 }
-                return `<a href="${artist.url}" target="_blank">${artist.name}</a>`;
-            }).join(' | ')
-            : 'N/A';
+                if (artist.name && artist.name !== 'N/A') {
+                    const url = artist.url && artist.url !== '#' ? artist.url : '#';
+                    return `<a href="${url}" target="_blank">${artist.name}</a>`;
+                }
+                return null;
+            }).filter(a => a !== null).join(' | ');
+            
+            // If result is empty after filtering, set to null
+            if (!artistsHtml) artistsHtml = null;
+        }
         
-        // Map ticket status to colors
-        const statusColors = {
-            'onsale': 'green',
-            'offsale': 'red',
-            'canceled': 'black',
-            'cancelled': 'black',
-            'postponed': 'orange',
-            'rescheduled': 'orange'
-        };
-        const statusColor = statusColors[details.ticketStatus?.toLowerCase()] || 'gray';
+        // ========================================
+        // Process Ticket Status with Color
+        // ========================================
+        let ticketStatusHtml = null;
+        if (shouldDisplay(details.ticketStatus)) {
+            const statusColors = {
+                'onsale': 'green',
+                'offsale': 'red',
+                'canceled': 'black',
+                'cancelled': 'black',
+                'postponed': 'orange',
+                'rescheduled': 'orange'
+            };
+            const statusColor = statusColors[details.ticketStatus.toLowerCase()] || 'gray';
+            ticketStatusHtml = `
+                <span class="ticket-status" style="background-color: ${statusColor}; color: white; padding: 5px 10px; border-radius: 5px;">
+                    ${details.ticketStatus}
+                </span>`;
+        }
         
-        // Build event details card HTML (without button inside)
+        // ========================================
+        // Process Buy Ticket URL
+        // ========================================
+        let buyTicketHtml = null;
+        if (shouldDisplay(details.buyTicketUrl) && details.buyTicketUrl !== '#') {
+            buyTicketHtml = `<a href="${details.buyTicketUrl}" target="_blank">Ticketmaster</a>`;
+        }
+        
+        // ========================================
+        // Build Details Info Section
+        // ========================================
+        let detailsInfoHtml = '<div class="details-info">';
+        
+        // Add each field conditionally
+        detailsInfoHtml += buildField('Date', details.date);
+        detailsInfoHtml += buildField('Artist/Team', artistsHtml, true);
+        detailsInfoHtml += buildField('Venue', details.venue);
+        detailsInfoHtml += buildField('Genres', details.genres);
+        detailsInfoHtml += buildField('Price Ranges', details.priceRange);
+        detailsInfoHtml += buildField('Ticket Status', ticketStatusHtml, true);
+        detailsInfoHtml += buildField('Buy Ticket At:', buyTicketHtml, true);
+        
+        detailsInfoHtml += '</div>';
+        
+        // ========================================
+        // Process Seatmap
+        // ========================================
+        const seatmapHtml = shouldDisplay(details.seatmap) 
+            ? `<div class="seatmap"><img src="${details.seatmap}" alt="Seat Map"></div>` 
+            : '';
+        
+        // ========================================
+        // Build Complete Card
+        // ========================================
         detailsCard.innerHTML = `
             <div class="event-details-card">
-                <h2>${details.name}</h2>
+                <h2>${details.name || 'Event Details'}</h2>
                 <div class="details-content">
-                    <div class="details-info">
-                        <p><strong>Date</strong><br>${details.date}</p>
-                        <p><strong>Artist/Team</strong><br>${artistsHtml}</p>
-                        <p><strong>Venue</strong><br>${details.venue}</p>
-                        <p><strong>Genres</strong><br>${details.genres}</p>
-                        ${details.priceRange !== 'N/A' ? `<p><strong>Price Ranges</strong><br>${details.priceRange}</p>` : ''}
-                        <p><strong>Ticket Status</strong><br>
-                            <span class="ticket-status" style="background-color: ${statusColor}; color: white; padding: 5px 10px; border-radius: 5px;">
-                                ${details.ticketStatus}
-                            </span>
-                        </p>
-                        <p><strong>Buy Ticket At:</strong><br>
-                            <a href="${details.buyTicketUrl}" target="_blank">Ticketmaster</a>
-                        </p>
-                    </div>
-                    ${details.seatmap ? `<div class="seatmap"><img src="${details.seatmap}" alt="Seat Map"></div>` : ''}
+                    ${detailsInfoHtml}
+                    ${seatmapHtml}
                 </div>
             </div>
             <div class="venue-btn-container">
-                <button class="venue-details-btn" onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')">
+                <button class="venue-details-btn" onclick="showVenueDetails('${(details.venue || 'N/A').replace(/'/g, "\\'")}', '${details.venueId || ''}')">
                     Show Venue Details
                 </button>
             </div>
