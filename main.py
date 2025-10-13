@@ -197,12 +197,53 @@ def get_venue_details():
     """
     Get detailed information for a specific venue
     Query parameters:
-    - name: Venue name to search for
+    - id: Venue ID (preferred if available)
+    - name: Venue name to search for (fallback)
     """
     try:
+        venue_id = request.args.get('id')
         venue_name = request.args.get('name')
         
-        # Return default N/A response if venue name is invalid
+        # Priority 1: Use Venue ID if provided
+        if venue_id and venue_id not in ['None', 'null', '']:
+            url = f'https://app.ticketmaster.com/discovery/v2/venues/{venue_id}.json'
+            params = {'apikey': TICKETMASTER_API_KEY}
+            
+            response = requests.get(url, params=params)
+            
+            if response.status_code == 200:
+                venue = response.json()
+                
+                # Extract venue information
+                name = venue.get('name', 'N/A')
+                
+                address_data = venue.get('address', {})
+                address = address_data.get('line1', 'N/A') if address_data else 'N/A'
+                
+                city_data = venue.get('city', {})
+                city_name = city_data.get('name', 'N/A') if city_data else 'N/A'
+                
+                state_data = venue.get('state', {})
+                state_code = state_data.get('stateCode', '') if state_data else ''
+                
+                city = f"{city_name}, {state_code}" if state_code else city_name
+                postal_code = venue.get('postalCode', 'N/A')
+                upcoming_events = venue.get('url', '#')
+                
+                venue_image = None
+                if 'images' in venue and isinstance(venue['images'], list) and len(venue['images']) > 0:
+                    venue_image = venue['images'][0].get('url', None)
+                
+                return jsonify({
+                    'name': name,
+                    'address': address,
+                    'city': city,
+                    'postalCode': postal_code,
+                    'upcomingEvents': upcoming_events,
+                    'image': venue_image
+                })
+        
+        # Priority 2: Fallback to search by name
         if not venue_name or venue_name == 'N/A':
             return jsonify({
                 'name': 'N/A',
@@ -213,7 +254,7 @@ def get_venue_details():
                 'image': None
             })
         
-        # Build API request for venue search
+        # Search by venue name
         url = 'https://app.ticketmaster.com/discovery/v2/venues.json'
         params = {
             'apikey': TICKETMASTER_API_KEY,
@@ -223,38 +264,23 @@ def get_venue_details():
         response = requests.get(url, params=params)
         data = response.json()
         
-        # Debug logging
-        print(f"Searching for venue: {venue_name}")
-        print(f"API Response status: {response.status_code}")
-        
-        # Check if venue data exists in response
         if '_embedded' in data and 'venues' in data['_embedded'] and len(data['_embedded']['venues']) > 0:
             venue = data['_embedded']['venues'][0]
             
-            # Extract venue name
             name = venue.get('name', 'N/A')
-            
-            # Extract address with safe navigation
             address_data = venue.get('address', {})
             address = address_data.get('line1', 'N/A') if address_data else 'N/A'
             
-            # Extract city and state with safe navigation
             city_data = venue.get('city', {})
             city_name = city_data.get('name', 'N/A') if city_data else 'N/A'
             
             state_data = venue.get('state', {})
             state_code = state_data.get('stateCode', '') if state_data else ''
             
-            # Combine city and state
             city = f"{city_name}, {state_code}" if state_code else city_name
-            
-            # Extract postal code
             postal_code = venue.get('postalCode', 'N/A')
-            
-            # Extract upcoming events URL
             upcoming_events = venue.get('url', '#')
             
-            # Extract venue image
             venue_image = None
             if 'images' in venue and isinstance(venue['images'], list) and len(venue['images']) > 0:
                 venue_image = venue['images'][0].get('url', None)
@@ -268,8 +294,6 @@ def get_venue_details():
                 'image': venue_image
             })
         else:
-            # No venue found, return venue name but other info as N/A
-            print(f"No venue found for: {venue_name}")
             return jsonify({
                 'name': venue_name,
                 'address': 'N/A',
@@ -280,7 +304,6 @@ def get_venue_details():
             })
     
     except Exception as e:
-        # Handle errors gracefully
         print(f"Error in get_venue_details: {str(e)}")
         return jsonify({
             'name': venue_name if 'venue_name' in locals() else 'N/A',

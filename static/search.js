@@ -496,7 +496,7 @@ async function showDetails(eventId) {
                 </div>
             </div>
             <div class="venue-btn-container">
-                <button class="venue-details-btn" onclick="showVenueDetails('${(details.venue || 'N/A').replace(/'/g, "\\'")}', '${details.venueId || ''}')">
+                <button class="venue-details-btn" onclick="showVenueDetails('${details.venue.replace(/'/g, "\\'")}', '${details.venueId || ''}')">
                     Show Venue Details
                 </button>
             </div>
@@ -518,6 +518,9 @@ async function showDetails(eventId) {
 async function showVenueDetails(venueName, venueId = null) {
     /**
      * Toggle venue details display and fetch venue information
+     * Parameters:
+     * - venueName: Name of the venue
+     * - venueId: Ticketmaster venue ID (optional, preferred)
      */
     try {
         const venueCard = document.getElementById('venueCard');
@@ -552,10 +555,20 @@ async function showVenueDetails(venueName, venueId = null) {
             return;
         }
         
-        console.log('Fetching venue details for:', venueName);
+        console.log('Fetching venue details for:', venueName, 'ID:', venueId);
+        
+        // Build API URL - prefer ID if available
+        let url = '/api/venue?';
+        if (venueId && venueId !== 'None' && venueId !== 'null' && venueId !== '') {
+            url += `id=${encodeURIComponent(venueId)}`;
+            console.log('Using venue ID for query');
+        } else {
+            url += `name=${encodeURIComponent(venueName)}`;
+            console.log('Using venue name for query');
+        }
         
         // Fetch venue details from backend
-        const response = await fetch(`/api/venue?name=${encodeURIComponent(venueName)}`);
+        const response = await fetch(url);
         const venue = await response.json();
         
         console.log('Venue details:', venue);
